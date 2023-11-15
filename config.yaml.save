@@ -1,0 +1,14 @@
+identified:
+  app: 1
+  test: false
+
+proxy:
+  socks5:
+    - 127.0.0.1:8080
+
+mysql:
+  ip: 
+  port: "3306"
+  username: 
+  password: 
+  database: 

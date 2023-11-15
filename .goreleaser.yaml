@@ -7,15 +7,21 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - main: ./ 
-    ldflags: -s -w 
-  - env:
+  - 
+    main: .
+    ldflags:
+      - -s
+      - -w
+      - -trimpath
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
       - darwin
-
+    goarch:
+      - amd64
+      - arm64
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of uname.
