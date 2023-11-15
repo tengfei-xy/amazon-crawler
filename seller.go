@@ -95,7 +95,7 @@ func (seller *sellerStruct) get_seller_url(url string) error {
 	//   -H 'viewport-width: 2048' \
 	//   --compressed
 
-	client := &http.Client{}
+	client := get_client()
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err

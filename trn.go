@@ -100,7 +100,7 @@ func (trn *trnStruct) get_trn() error {
 	//	  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' \
 	//	  -H 'viewport-width: 2048' \
 	//	  --compressed
-	client := &http.Client{}
+	client := get_client()
 	req, err := http.NewRequest("GET", trn.url, nil)
 	if err != nil {
 		return err

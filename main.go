@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/tengfei-xy/go-log"
@@ -21,11 +23,16 @@ const MYSQL_APPLICATION_STATUS_TRN int = 4
 type appConfig struct {
 	Mysql      `yaml:"mysql"`
 	Identified `yaml:"identified"`
+	Proxy      `yaml:"proxy"`
 	db         *sql.DB
 	primary_id int64
 }
 type Identified struct {
-	App int `yaml:"app"`
+	App  int  `yaml:"app"`
+	Test bool `yaml:"test"`
+}
+type Proxy struct {
+	Sockc5 []string `yaml:"socks5"`
 }
 type Mysql struct {
 	Ip       string `yaml:"ip"`
@@ -48,6 +55,8 @@ func init_config() {
 	}
 	log.Infof("程序标识:%d", app.Identified.App)
 
+}
+func init_mysql() {
 	DB, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", app.Mysql.Username, app.Mysql.Password, app.Mysql.Ip, app.Mysql.Port, app.Mysql.Database))
 	if err != nil {
 		panic(err)
@@ -59,36 +68,64 @@ func init_config() {
 	}
 	log.Info("数据库已连接")
 	app.db = DB
+}
+func init_network() {
+	log.Info("网络测试开始")
+
+	var s search
+	s.en_key = "Hardware+electrician"
+	_, err := s.NewRequest(0)
+	if err != nil {
+		log.Error("网络错误")
+		panic(err)
+	}
+
+	log.Info("网页测试成功")
 
 }
-
 func init_signal() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	signal.Notify(c, os.Kill)
-	<-c
-	app.end()
-	app.db.Close()
-	log.Infof("程序结束")
+	// 创建一个通道来接收操作系统的信号
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGABRT)
+
+	go func() {
+		<-sigCh
+		cleanup()
+	}()
 }
 func main() {
 	init_config()
+	init_network()
+	init_mysql()
+	init_signal()
+	runApplication()
+
+}
+func cleanup() {
+	log.Infof("\n程序即将结束")
+	app.end()
+	app.db.Close()
+	log.Infof("程序结束")
+	os.Exit(0)
+}
+func runApplication() {
+
 	app.start()
 
-	// go init_signal()
-
-	// var s search
-	// s.main()
+	var s search
+	s.main()
 
 	var seller sellerStruct
 	seller.main()
 
 	var trn trnStruct
 	trn.main()
-
-	app.end()
 }
 func (app *appConfig) start() {
+	if app.Identified.Test {
+		log.Infof("测试模式启动")
+		return
+	}
 	r, err := app.db.Exec("insert into application (app_id) values(?)", app.Identified.App)
 	if err != nil {
 		panic(err)
@@ -106,5 +143,13 @@ func (app *appConfig) update(status int) {
 	}
 }
 func (app *appConfig) end() {
+	if app.Identified.Test {
+		return
+	}
 	app.db.Exec("update into application set status=? where id=?", MYSQL_APPLICATION_STATUS_OVER, app.primary_id)
+}
+
+// 随机挂起 x 秒
+func sleep(i int) {
+	time.Sleep(time.Duration(i) * time.Second)
 }

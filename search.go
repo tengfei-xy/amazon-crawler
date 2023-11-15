@@ -1,12 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/chromedp/chromedp"
 	log "github.com/tengfei-xy/go-log"
 )
 
@@ -14,14 +13,16 @@ const MYSQL_SEARCH_STATUS_START int64 = 0
 const MYSQL_SEARCH_STATUS_OVER int64 = 1
 
 type search struct {
-	zh_key      string
-	en_key      string
-	category_id int64
-	url         string
-	start       int
-	end         int
-	html        string
-	valid       int
+	zh_key        string
+	en_key        string
+	category_id   int64
+	url           string
+	start         int
+	end           int
+	html          string
+	valid         int
+	product_url   string
+	product_param string
 }
 
 func (s *search) main() error {
@@ -29,7 +30,7 @@ func (s *search) main() error {
 
 	log.Infof("------------------------")
 	log.Infof("1. 开始搜索关键词")
-	row, err := app.db.Query(`select id,zh_key,en_key from category order by priority`)
+	row, err := app.db.Query(`select id,zh_key,en_key from category order by priority DESC `)
 	if err != nil {
 		return err
 	}
@@ -85,37 +86,87 @@ func (s *search) search_end(insert_id int64) error {
 func (s *search) set_en_key() string {
 	return strings.ReplaceAll(strings.ReplaceAll(s.en_key, " ", "+"), "'", "%27")
 }
-func (s *search) NewRequest(seq int) (string, error) {
+func (s *search) NewRequest(seq int) (*goquery.Document, error) {
+	// 	curl 'https://www.amazon.co.uk/Povxlum-Waterproof-Shockproof-Electrician-27X22X7Cm/dp/B0C7VF6B53/ref=sr_1_1?crid=2V9436DZJ6IJF&keywords=Hardware+electrician&qid=1699939808&sprefix=clothe%2Caps%2C552&sr=8-1' \
+	//   -H 'authority: www.amazon.co.uk' \
+	//   -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' \
+	//   -H 'accept-language: zh-CN,zh;q=0.9' \
+	//   -H 'cache-control: no-cache' \
+	//   -H 'device-memory: 8' \
+	//   -H 'downlink: 1.55' \
+	//   -H 'dpr: 2' \
+	//   -H 'ect: 3g' \
+	//   -H 'pragma: no-cache' \
+	//   -H 'rtt: 400' \
+	//   -H 'sec-ch-device-memory: 8' \
+	//   -H 'sec-ch-dpr: 2' \
+	//   -H 'sec-ch-ua: "Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"' \
+	//   -H 'sec-ch-ua-mobile: ?0' \
+	//   -H 'sec-ch-ua-platform: "macOS"' \
+	//   -H 'sec-ch-ua-platform-version: "14.1.0"' \
+	//   -H 'sec-ch-viewport-width: 2028' \
+	//   -H 'sec-fetch-dest: document' \
+	//   -H 'sec-fetch-mode: navigate' \
+	//   -H 'sec-fetch-site: same-origin' \
+	//   -H 'sec-fetch-user: ?1' \
+	//   -H 'upgrade-insecure-requests: 1' \
+	//   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' \
+	//   -H 'viewport-width: 2028' \
+	//   --compressed
+
 	url := fmt.Sprintf("https://www.amazon.co.uk/s?k=%s&page=%d&crid=2V9436DZJ6IJF&qid=1699839233&sprefix=clothe%%2Caps%%2C552&ref=sr_pg_2", s.en_key, seq)
 	log.Infof("开始搜索 关键词:%s 页面:%d url:%s", s.zh_key, seq, url)
 
-	// 创建一个新的上下文
-	ctx, cancel := chromedp.NewContext(context.Background())
-	defer cancel()
-
-	// 运行任务
-	var htmlContent string
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(url),
-		chromedp.OuterHTML("html", &htmlContent),
-	)
+	client := get_client()
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	s.html = htmlContent
-	// 打印最终的 HTML 代码
-	return htmlContent, nil
-}
+	req.Header.Set("Authority", `www.amazon.co.uk`)
+	req.Header.Set("Accept", `text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7`)
+	req.Header.Set("Accept-Language", `zh-CN,zh;q=0.9`)
+	req.Header.Set("cache-control", `max-age=0`)
+	req.Header.Set("device-memory", `8`)
+	req.Header.Set("device-memory", `8`)
+	req.Header.Set("downlink", `1.55'`)
+	req.Header.Set("dpr", `2`)
+	req.Header.Set("ect", `3g`)
+	req.Header.Set("pragma", `400`)
+	// req.Header.Set("Cookie", cookie)
+	req.Header.Set("upgrade-insecure-requests", `1`)
+	req.Header.Set("Referer", "https://www.amazon.co.uk/s?k=Hardware+electricia%27n&crid=3CR8DCX0B3L5U&sprefix=hardware+electricia%27n%2Caps%2C714&ref=nb_sb_noss")
+	req.Header.Set("Sec-Fetch-Dest", `empty`)
+	req.Header.Set("Sec-Fetch-Mode", `cors`)
+	req.Header.Set("Sec-Fetch-Site", `same-origin`)
+	req.Header.Set("User-Agent", `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36`)
+	req.Header.Set("sec-ch-ua", `"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"`)
+	req.Header.Set("sec-ch-ua-mobile", `?0`)
+	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
 
-func (s *search) get_product_url(body string) {
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Errorf("内部错误:%v", err)
-		return
+		return nil, err
+
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Errorf("状态码:%d", resp.StatusCode)
+		return nil, err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("内部错误:%v", err)
+	}
+	return doc, nil
+}
+
+func (s *search) get_product_url(doc *goquery.Document) {
+
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println(body)
 			return
 		}
 	}()
@@ -135,15 +186,18 @@ func (s *search) get_product_url(body string) {
 		_, err := app.db.Exec(`INSERT INTO product(url,param) values(?,?)`, url[0], "/ref="+url[1])
 
 		if is_duplicate_entry(err) {
-			log.Infof("已存在 关键词:%s 链接:%s ", s.zh_key, link)
+			log.Infof("商品已存在 关键词:%s 链接:%s ", s.zh_key, link)
 			return
 		}
 		if err != nil {
-			log.Errorf("插入失败 关键词:%s 链接:%s %v ", s.zh_key, link, err)
+			log.Errorf("商品插入失败 关键词:%s 链接:%s %v ", s.zh_key, link, err)
 			return
 		}
 
-		log.Infof("插入成功 关键词:%s 链接:%s ", s.zh_key, link)
+		log.Infof("商品插入成功 关键词:%s 链接:%s ", s.zh_key, link)
 		s.valid += 1
+
+		return
 	})
+	return
 }

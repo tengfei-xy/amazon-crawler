@@ -7,6 +7,8 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
+  - main: ./ 
+    ldflags: -s -w 
   - env:
       - CGO_ENABLED=0
     goos:
