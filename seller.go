@@ -21,17 +21,31 @@ const MYSQL_SELLER_STATUS_ERROR_OVER int = 3
 const MYSQL_SELLER_STATUS_NO_SELLER int = 4
 
 func (seller *sellerStruct) main() error {
+	if !app.Enable.Seller {
+		log.Info("跳过 产品")
+		return nil
+	}
+
 	app.update(MYSQL_APPLICATION_STATUS_SELLER)
 
 	log.Infof("------------------------")
 	log.Infof("2. 开始从产品页获取商家ID")
-	_, err := app.db.Exec("UPDATE product SET status = ? ,app = ? WHERE status = ? and app=? LIMIT 100", MYSQL_SELLER_STATUS_CHEKCK, app.Identified.App, MYSQL_SELLER_STATUS_INSERT, 0)
+	r, err := app.db.Exec("UPDATE product SET status = ? ,app = ? WHERE status = ? and (app=? or app=?)  LIMIT 100", MYSQL_SELLER_STATUS_CHEKCK, app.Identified.App, MYSQL_SELLER_STATUS_INSERT, 0, app.Identified.App)
 	if err != nil {
 		log.Errorf("更新product表失败,%v", err)
 		return err
 	}
-
-	row, err := app.db.Query(`select id,url,param from product where status=? and app = ? limit 100`, MYSQL_SELLER_STATUS_CHEKCK, app.Identified.App)
+	num, err := r.RowsAffected()
+	if err != nil {
+		log.Errorf("获取product表更新行数失败,%v", err)
+		return err
+	}
+	log.Infof("本次需要更新:%d条", num)
+	if num == 0 {
+		sleep(120)
+		return nil
+	}
+	row, err := app.db.Query(`select id,url,param from product where status=? and app = ?`, MYSQL_SELLER_STATUS_CHEKCK, app.Identified.App)
 	if err != nil {
 		log.Errorf("查询product表失败,%v", err)
 		return err
@@ -155,7 +169,7 @@ func (seller *sellerStruct) get_seller_id() string {
 	return seller.id
 }
 func (seller *sellerStruct) insert_selll_id() error {
-	_, err := app.db.Exec("insert into seller (seller_id,app) values(?,?)", seller.id, app.Identified.App)
+	_, err := app.db.Exec("insert into seller (seller_id,app) values(?,?)", seller.id, 0)
 	return err
 }
 

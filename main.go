@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -24,9 +25,16 @@ type appConfig struct {
 	Mysql      `yaml:"mysql"`
 	Identified `yaml:"identified"`
 	Proxy      `yaml:"proxy"`
+	Enable     `yaml:"enable"`
 	db         *sql.DB
 	primary_id int64
 }
+type Enable struct {
+	Search bool `yaml:"search"`
+	Seller bool `yaml:"seller"`
+	Trn    bool `yaml:"trn"`
+}
+
 type Identified struct {
 	App  int  `yaml:"app"`
 	Test bool `yaml:"test"`
@@ -41,11 +49,14 @@ type Mysql struct {
 	Password string `yaml:"password"`
 	Database string `yaml:"database"`
 }
+type flagStruct struct {
+	config_file string
+}
 
 var app appConfig
 
-func init_config() {
-	yamlFile, err := os.ReadFile("config.yaml")
+func init_config(flag flagStruct) {
+	yamlFile, err := os.ReadFile(flag.config_file)
 	if err != nil {
 		panic(err)
 	}
@@ -53,8 +64,10 @@ func init_config() {
 	if err != nil {
 		panic(err)
 	}
+	if !app.Enable.Search && !app.Enable.Seller && !app.Enable.Trn {
+		panic("没有启动功能，检查配置文件的enable配置的选项")
+	}
 	log.Infof("程序标识:%d", app.Identified.App)
-
 }
 func init_mysql() {
 	DB, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", app.Mysql.Username, app.Mysql.Password, app.Mysql.Ip, app.Mysql.Port, app.Mysql.Database))
@@ -81,7 +94,6 @@ func init_network() {
 	}
 
 	log.Info("网页测试成功")
-
 }
 func init_signal() {
 	// 创建一个通道来接收操作系统的信号
@@ -90,36 +102,40 @@ func init_signal() {
 
 	go func() {
 		<-sigCh
-		cleanup()
+		log.Info("")
+		log.Infof("程序即将结束")
+		app.end()
+		app.db.Close()
+		log.Infof("程序结束")
+		os.Exit(0)
 	}()
 }
+func init_flag() flagStruct {
+	var f flagStruct
+	flag.StringVar(&f.config_file, "c", "config.yaml", "打开配置文件")
+	flag.Parse()
+	return f
+}
+
 func main() {
-	init_config()
+
+	init_config(init_flag())
 	init_network()
 	init_mysql()
 	init_signal()
-	runApplication()
-
-}
-func cleanup() {
-	log.Infof("\n程序即将结束")
-	app.end()
-	app.db.Close()
-	log.Infof("程序结束")
-	os.Exit(0)
-}
-func runApplication() {
 
 	app.start()
+	for {
+		var s search
+		s.main()
 
-	var s search
-	s.main()
+		var seller sellerStruct
+		seller.main()
 
-	var seller sellerStruct
-	seller.main()
+		var trn trnStruct
+		trn.main()
+	}
 
-	var trn trnStruct
-	trn.main()
 }
 func (app *appConfig) start() {
 	if app.Identified.Test {
@@ -146,10 +162,13 @@ func (app *appConfig) end() {
 	if app.Identified.Test {
 		return
 	}
-	app.db.Exec("update into application set status=? where id=?", MYSQL_APPLICATION_STATUS_OVER, app.primary_id)
+	if _, err := app.db.Exec("update application set status=? where id=?", MYSQL_APPLICATION_STATUS_OVER, app.primary_id); err != nil {
+		log.Error(err)
+	}
 }
 
 // 随机挂起 x 秒
 func sleep(i int) {
+	log.Infof("挂起%d秒", i)
 	time.Sleep(time.Duration(i) * time.Second)
 }

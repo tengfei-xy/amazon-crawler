@@ -26,6 +26,10 @@ type search struct {
 }
 
 func (s *search) main() error {
+	if !app.Enable.Search {
+		log.Info("跳过 搜索")
+		return nil
+	}
 	app.update(MYSQL_APPLICATION_STATUS_SEARCH)
 
 	log.Infof("------------------------")
@@ -37,6 +41,7 @@ func (s *search) main() error {
 	s.start = 1
 	s.end = 10
 	for row.Next() {
+		s.valid = 0
 		row.Scan(&s.category_id, &s.zh_key, &s.en_key)
 		s.en_key = s.set_en_key()
 		insert_id, err := s.search_start()
@@ -46,7 +51,14 @@ func (s *search) main() error {
 		}
 		for ; s.start < s.end; s.start++ {
 			h, err := s.NewRequest(s.start)
-			if err != nil {
+			switch err {
+			case nil:
+				break
+			case ERROR_NOT_503:
+				s.start--
+				sleep(120)
+				continue
+			default:
 				log.Error(err)
 				continue
 			}
@@ -132,7 +144,7 @@ func (s *search) NewRequest(seq int) (*goquery.Document, error) {
 	req.Header.Set("dpr", `2`)
 	req.Header.Set("ect", `3g`)
 	req.Header.Set("pragma", `400`)
-	// req.Header.Set("Cookie", cookie)
+	req.Header.Set("Cookie", `sp-cdn="L5Z9:CN"`)
 	req.Header.Set("upgrade-insecure-requests", `1`)
 	req.Header.Set("Referer", "https://www.amazon.co.uk/s?k=Hardware+electricia%27n&crid=3CR8DCX0B3L5U&sprefix=hardware+electricia%27n%2Caps%2C714&ref=nb_sb_noss")
 	req.Header.Set("Sec-Fetch-Dest", `empty`)
@@ -151,9 +163,13 @@ func (s *search) NewRequest(seq int) (*goquery.Document, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		log.Errorf("状态码:%d", resp.StatusCode)
-		return nil, err
+	switch resp.StatusCode {
+	case 200:
+		break
+	case 503:
+		return nil, ERROR_NOT_503
+	default:
+		return nil, fmt.Errorf("状态码:%d", resp.StatusCode)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)

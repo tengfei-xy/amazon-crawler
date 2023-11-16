@@ -26,7 +26,7 @@ const MYSQL_TRN_STATUS_OTHER int = 3
 const MYSQL_TRN_STATUS_SPECIAL int = 4
 
 func (trn *trnStruct) start() error {
-	_, err := app.db.Exec("UPDATE seller SET app = ? WHERE status = ? and app=? LIMIT 100", app.Identified.App, MYSQL_SELLER_STATUS_INSERT, 0)
+	_, err := app.db.Exec("UPDATE seller SET app = ? WHERE status = ? and (app=? or app=?) LIMIT 100", app.Identified.App, MYSQL_SELLER_STATUS_INSERT, 0, app.Identified.App)
 	if err != nil {
 		log.Errorf("更新seller表失败,%v", err)
 		return err
@@ -35,12 +35,32 @@ func (trn *trnStruct) start() error {
 }
 
 func (trn *trnStruct) main() error {
+	if !app.Enable.Trn {
+		log.Info("跳过 TRN")
+		return nil
+	}
+
 	app.update(MYSQL_APPLICATION_STATUS_TRN)
 
 	log.Infof("------------------------")
 	log.Infof("3. 开始 根据商家页获取TRN")
 	trn.start()
 
+	r, err := app.db.Exec("UPDATE seller SET app = ? WHERE status = ? and app=? LIMIT 100", app.Identified.App, MYSQL_TRN_STATUS_INSERT, 0)
+	if err != nil {
+		log.Errorf("更新seller表失败,%v", err)
+		return err
+	}
+	num, err := r.RowsAffected()
+	if err != nil {
+		log.Errorf("获取seller表更新行数失败,%v", err)
+		return err
+	}
+	log.Infof("本次需要更新:%d条", num)
+	if num == 0 {
+		sleep(120)
+		return nil
+	}
 	row, err := app.db.Query("select id,seller_id from seller where status =? and app=?", MYSQL_SELLER_STATUS_INSERT, app.Identified.App)
 	switch err {
 	case nil:
@@ -49,6 +69,7 @@ func (trn *trnStruct) main() error {
 		log.Warn("没有合适的商家ID需要检查,请检查第二步")
 		return nil
 	default:
+		log.Error(err)
 		return err
 
 	}

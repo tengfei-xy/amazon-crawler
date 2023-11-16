@@ -5,6 +5,11 @@ identified:
 proxy:
   socks5:
     - 127.0.0.1:8080
+    
+enable:
+  search: true
+  seller: true
+  trn: true
 
 mysql:
   ip: 

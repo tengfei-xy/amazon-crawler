@@ -16,3 +16,4 @@ func is_duplicate_entry(err error) bool {
 }
 
 var ERROR_NOT_SELLER error = fmt.Errorf("不存在商家链接")
+var ERROR_NOT_503 error = fmt.Errorf("连接失败,503")
