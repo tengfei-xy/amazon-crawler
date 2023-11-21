@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/tengfei-xy/go-log"
 	"golang.org/x/net/proxy"
 )
 
@@ -17,10 +16,8 @@ func get_client() http.Client {
 
 	proxy, err := get_socks5_proxy()
 	if err != nil {
-		log.Debug("使用本地网络")
 		return http.Client{Timeout: time.Second * 60}
 	}
-	log.Debug("使用代理网络")
 	return http.Client{
 		Transport: &http.Transport{
 			Dial: proxy.Dial,

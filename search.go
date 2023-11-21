@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -26,7 +27,7 @@ type search struct {
 }
 
 func (s *search) main() error {
-	if !app.Enable.Search {
+	if !app.Exec.Enable.Search {
 		log.Info("跳过 搜索")
 		return nil
 	}
@@ -34,9 +35,10 @@ func (s *search) main() error {
 
 	log.Infof("------------------------")
 	log.Infof("1. 开始搜索关键词")
-	row, err := app.db.Query(`select id,zh_key,en_key from category order by priority DESC `)
+	row, err := s.get_category()
 	if err != nil {
-		return err
+		log.Error(err)
+		log.Infof("------------------------")
 	}
 	s.start = 1
 	s.end = 10
@@ -50,16 +52,18 @@ func (s *search) main() error {
 			continue
 		}
 		for ; s.start < s.end; s.start++ {
-			h, err := s.NewRequest(s.start)
+			h, err := s.request(s.start)
 			switch err {
 			case nil:
 				break
+			case ERROR_NOT_404:
 			case ERROR_NOT_503:
 				s.start--
 				sleep(120)
 				continue
 			default:
 				log.Error(err)
+				sleep(120)
 				continue
 			}
 			s.get_product_url(h)
@@ -74,8 +78,20 @@ func (s *search) main() error {
 	log.Infof("------------------------")
 	return nil
 }
+func (s *search) get_category() (*sql.Rows, error) {
+	switch app.Exec.Search_priority {
+	case 1:
+		log.Infof("搜索优先级优先")
+		return app.db.Query(`select id,zh_key,en_key from category order by priority DESC`)
+	case 2:
+		log.Infof("搜索次数少优先")
+		return app.db.Query(`SELECT c.id, c.zh_key, c.en_key  FROM category c LEFT JOIN search_statistics s ON s.category_id = c.id GROUP BY c.id ORDER BY COUNT(s.category_id),id`)
+	}
+	log.Infof("错误的输入，按搜索优先级优先")
+	return app.db.Query(`select id,zh_key,en_key from category order by priority DESC `)
+}
 func (s *search) search_start() (int64, error) {
-	r, err := app.db.Exec("insert into search_statistics(category_id,app) values(?,?)", s.category_id, app.Identified.App)
+	r, err := app.db.Exec("insert into search_statistics(category_id,app) values(?,?)", s.category_id, app.Basic.App_id)
 	if err != nil {
 		return 0, err
 	}
@@ -98,8 +114,8 @@ func (s *search) search_end(insert_id int64) error {
 func (s *search) set_en_key() string {
 	return strings.ReplaceAll(strings.ReplaceAll(s.en_key, " ", "+"), "'", "%27")
 }
-func (s *search) NewRequest(seq int) (*goquery.Document, error) {
-	// 	curl 'https://www.amazon.co.uk/Povxlum-Waterproof-Shockproof-Electrician-27X22X7Cm/dp/B0C7VF6B53/ref=sr_1_1?crid=2V9436DZJ6IJF&keywords=Hardware+electrician&qid=1699939808&sprefix=clothe%2Caps%2C552&sr=8-1' \
+func (s *search) request(seq int) (*goquery.Document, error) {
+	// 	curl 'https://www.amazon.co.uk/s?k=server&page=2&crid=2V9436DZJ6IJF&qid=1699839233&sprefix=clothe%2Caps%2C552&ref=sr_pg_2' \
 	//   -H 'authority: www.amazon.co.uk' \
 	//   -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' \
 	//   -H 'accept-language: zh-CN,zh;q=0.9' \
@@ -134,7 +150,6 @@ func (s *search) NewRequest(seq int) (*goquery.Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authority", `www.amazon.co.uk`)
 	req.Header.Set("Accept", `text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7`)
 	req.Header.Set("Accept-Language", `zh-CN,zh;q=0.9`)
 	req.Header.Set("cache-control", `max-age=0`)
@@ -144,9 +159,12 @@ func (s *search) NewRequest(seq int) (*goquery.Document, error) {
 	req.Header.Set("dpr", `2`)
 	req.Header.Set("ect", `3g`)
 	req.Header.Set("pragma", `400`)
-	req.Header.Set("Cookie", `sp-cdn="L5Z9:CN"`)
+	if _, err := app.get_cookie(); err != nil {
+		log.Error(err)
+	} else {
+		req.Header.Set("Cookie", app.cookie)
+	}
 	req.Header.Set("upgrade-insecure-requests", `1`)
-	req.Header.Set("Referer", "https://www.amazon.co.uk/s?k=Hardware+electricia%27n&crid=3CR8DCX0B3L5U&sprefix=hardware+electricia%27n%2Caps%2C714&ref=nb_sb_noss")
 	req.Header.Set("Sec-Fetch-Dest", `empty`)
 	req.Header.Set("Sec-Fetch-Mode", `cors`)
 	req.Header.Set("Sec-Fetch-Site", `same-origin`)
@@ -166,6 +184,8 @@ func (s *search) NewRequest(seq int) (*goquery.Document, error) {
 	switch resp.StatusCode {
 	case 200:
 		break
+	case 404:
+		return nil, ERROR_NOT_404
 	case 503:
 		return nil, ERROR_NOT_503
 	default:

@@ -26,7 +26,7 @@ const MYSQL_TRN_STATUS_OTHER int = 3
 const MYSQL_TRN_STATUS_SPECIAL int = 4
 
 func (trn *trnStruct) start() error {
-	_, err := app.db.Exec("UPDATE seller SET app = ? WHERE status = ? and (app=? or app=?) LIMIT 100", app.Identified.App, MYSQL_SELLER_STATUS_INSERT, 0, app.Identified.App)
+	_, err := app.db.Exec("UPDATE seller SET app = ? WHERE status = ? and (app=? or app=?) LIMIT 100", app.Basic.App_id, MYSQL_SELLER_STATUS_INSERT, 0, app.Basic.App_id)
 	if err != nil {
 		log.Errorf("更新seller表失败,%v", err)
 		return err
@@ -35,7 +35,7 @@ func (trn *trnStruct) start() error {
 }
 
 func (trn *trnStruct) main() error {
-	if !app.Enable.Trn {
+	if !app.Exec.Enable.Trn {
 		log.Info("跳过 TRN")
 		return nil
 	}
@@ -46,27 +46,17 @@ func (trn *trnStruct) main() error {
 	log.Infof("3. 开始 根据商家页获取TRN")
 	trn.start()
 
-	r, err := app.db.Exec("UPDATE seller SET app = ? WHERE status = ? and app=? LIMIT 100", app.Identified.App, MYSQL_TRN_STATUS_INSERT, 0)
+	_, err := app.db.Exec("UPDATE seller SET app = ? WHERE status = ? and app=? LIMIT 100", app.Basic.App_id, MYSQL_TRN_STATUS_INSERT, 0)
 	if err != nil {
 		log.Errorf("更新seller表失败,%v", err)
 		return err
 	}
-	num, err := r.RowsAffected()
-	if err != nil {
-		log.Errorf("获取seller表更新行数失败,%v", err)
-		return err
-	}
-	log.Infof("本次需要更新:%d条", num)
-	if num == 0 {
-		sleep(120)
-		return nil
-	}
-	row, err := app.db.Query("select id,seller_id from seller where status =? and app=?", MYSQL_SELLER_STATUS_INSERT, app.Identified.App)
+	row, err := app.db.Query("select id,seller_id from seller where status =? and app=?", MYSQL_SELLER_STATUS_INSERT, app.Basic.App_id)
 	switch err {
 	case nil:
 		break
 	case sql.ErrNoRows:
-		log.Warn("没有合适的商家ID需要检查,请检查第二步")
+		log.Warn("没有合适的商家ID需要检查")
 		return nil
 	default:
 		log.Error(err)
@@ -79,10 +69,11 @@ func (trn *trnStruct) main() error {
 			log.Error(err)
 			continue
 		}
-		if err := trn.get_trn(); err != nil {
+		for err := trn.request(); err != nil; {
 			log.Error(err)
-			continue
+			sleep(120)
 		}
+
 		trn.check()
 		if err := trn.update(); err != nil {
 			log.Error(err)
@@ -102,7 +93,7 @@ func (trn *trnStruct) main() error {
 // 举例: 根据 https://www.amazon.co.uk/sp?ie=UTF8&seller=A272CUATTYX3C4
 //
 //	找到 91440101MA9Y624U3K
-func (trn *trnStruct) get_trn() error {
+func (trn *trnStruct) request() error {
 	trn.url = fmt.Sprintf("%s/sp?ie=UTF8&seller=%s", AMAZON_UK, trn.seller_id)
 
 	log.Infof("查找TRN 链接: %s", trn.url)
@@ -135,7 +126,11 @@ func (trn *trnStruct) get_trn() error {
 	req.Header.Set("dpr", `2`)
 	req.Header.Set("ect", `3g`)
 	req.Header.Set("rtt", `350`)
-	// req.Header.Set("Cookie", cookie)
+	if _, err := app.get_cookie(); err != nil {
+		log.Error(err)
+	} else {
+		req.Header.Set("Cookie", app.cookie)
+	}
 	req.Header.Set("upgrade-insecure-requests", `1`)
 	req.Header.Set("Referer", "https://www.amazon.co.uk/s?k=Hardware+electricia%27n&crid=3CR8DCX0B3L5U&sprefix=hardware+electricia%27n%2Caps%2C714&ref=nb_sb_noss")
 	req.Header.Set("Sec-Fetch-Dest", `empty`)
@@ -154,9 +149,15 @@ func (trn *trnStruct) get_trn() error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		log.Errorf("状态码:%d", resp.StatusCode)
-		return err
+	switch resp.StatusCode {
+	case 200:
+		break
+	case 404:
+		return ERROR_NOT_404
+	case 503:
+		return ERROR_NOT_503
+	default:
+		return fmt.Errorf("状态码:%d", resp.StatusCode)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
@@ -181,18 +182,23 @@ func (trn *trnStruct) get_trn() error {
 	return nil
 }
 func (trn *trnStruct) check() {
+	trn.trn = strings.ReplaceAll(trn.trn, "(1-1)", "")
 	if len(trn.trn) == 0 {
-		log.Errorf("检查错误:TRN为空 url: %s", trn.url)
+		log.Errorf("检查结果:TRN为空")
 		trn.status = MYSQL_TRN_STATUS_NULL
 		return
-	}
-	if len(trn.trn) != 18 {
-		log.Errorf("检查错误:非中国 TRN: %s url: %s", trn.trn, trn.url)
+	} else if len(trn.trn) < 18 {
+		log.Infof("检查结果:非中国 TRN: %s", trn.trn)
+		trn.status = MYSQL_TRN_STATUS_OTHER
+		return
+	} else if len(trn.trn) > 18 {
+		log.Infof("检查结果:非中国 TRN: %s", trn.trn)
+		trn.trn = ""
 		trn.status = MYSQL_TRN_STATUS_OTHER
 		return
 	}
 	if trn.trn[0] != '9' {
-		log.Errorf("检查错误:18位长,非9开头 TRN:%s url: %s", trn.trn, trn.url)
+		log.Errorf("检查结果:18位长,非9开头 TRN: %s", trn.trn)
 		trn.status = MYSQL_TRN_STATUS_SPECIAL
 		return
 	}
@@ -200,6 +206,6 @@ func (trn *trnStruct) check() {
 	return
 }
 func (trn *trnStruct) update() error {
-	_, err := app.db.Exec("update seller set status=?,trn=? where id=? and app=?", trn.status, trn.trn, trn.primary_id, app.Identified.App)
+	_, err := app.db.Exec("update seller set status=?,trn=? where id=? and app=?", trn.status, trn.trn, trn.primary_id, app.Basic.App_id)
 	return err
 }

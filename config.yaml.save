@@ -1,19 +1,43 @@
-identified:
-  app: 1
+basic:
+  # 相同主机下的app标识
+  app_id: 1
+
+  # 不同相同主机的标识
+  # 相同主机下host_id应相同，但倘若使用了socks5，请检查cookie本身是否适用于对应的代理服务器
+  # 主要用来标识相同的主机下应使用相同的cookie，当然，其实不同的cookie也是可以的。
+  host_id: 1
+
+  # 测试模式，将不连接数据库
   test: false
 
 proxy:
   socks5:
+    # socks5必须使用，目前仅仅支持一个
+    # 启动socks代理，可以尝试安装gost
+    # gost -L :8080 或 gost -L -L 127.0.0.1:8080
     - 127.0.0.1:8080
-    
-enable:
-  search: true
-  seller: true
-  trn: true
 
+exec:
+  # enable中，当值为false时，将跳过此步骤
+  enable:
+    # 搜索步骤，从数据库中获取关键词并进行搜索每一页
+    search: true
+
+    # 访问从搜索结果中获取每个商品的链接，并得到商家ID
+    seller: true
+
+    # 访问商家页面，获取TRN
+    trn: true
+
+  # 1 优先级优先(默认)
+  # 2 搜索次数少优先
+  search_priority: 1
+
+# 务必初始化，初始化的ddl文件参考本目录下的sql/文件夹
+# 关键词的初始化参考sql/cateogory.sql
 mysql:
-  ip: 
+  ip: "127.0.0.0.1"
   port: "3306"
   username: 
   password: 
-  database: 
+  database: "amazon"

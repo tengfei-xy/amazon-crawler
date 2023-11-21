@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/tengfei-xy/go-log"
@@ -23,21 +22,26 @@ const MYSQL_APPLICATION_STATUS_TRN int = 4
 
 type appConfig struct {
 	Mysql      `yaml:"mysql"`
-	Identified `yaml:"identified"`
+	Basic      `yaml:"basic"`
 	Proxy      `yaml:"proxy"`
-	Enable     `yaml:"enable"`
+	Exec       `yaml:"exec"`
 	db         *sql.DB
+	cookie     string
 	primary_id int64
+}
+type Exec struct {
+	Enable          `yaml:"enable"`
+	Search_priority int `yaml:"search_priority"`
 }
 type Enable struct {
 	Search bool `yaml:"search"`
 	Seller bool `yaml:"seller"`
 	Trn    bool `yaml:"trn"`
 }
-
-type Identified struct {
-	App  int  `yaml:"app"`
-	Test bool `yaml:"test"`
+type Basic struct {
+	App_id  int  `yaml:"app_id"`
+	Host_id int  `yaml:"host_id"`
+	Test    bool `yaml:"test"`
 }
 type Proxy struct {
 	Sockc5 []string `yaml:"socks5"`
@@ -51,6 +55,7 @@ type Mysql struct {
 }
 type flagStruct struct {
 	config_file string
+	web         bool
 }
 
 var app appConfig
@@ -67,7 +72,7 @@ func init_config(flag flagStruct) {
 	if !app.Enable.Search && !app.Enable.Seller && !app.Enable.Trn {
 		panic("没有启动功能，检查配置文件的enable配置的选项")
 	}
-	log.Infof("程序标识:%d", app.Identified.App)
+	log.Infof("程序标识:%d 主机标识:%d", app.Basic.App_id, app.Basic.Host_id)
 }
 func init_mysql() {
 	DB, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", app.Mysql.Username, app.Mysql.Password, app.Mysql.Ip, app.Mysql.Port, app.Mysql.Database))
@@ -87,7 +92,7 @@ func init_network() {
 
 	var s search
 	s.en_key = "Hardware+electrician"
-	_, err := s.NewRequest(0)
+	_, err := s.request(0)
 	if err != nil {
 		log.Error("网络错误")
 		panic(err)
@@ -113,15 +118,16 @@ func init_signal() {
 func init_flag() flagStruct {
 	var f flagStruct
 	flag.StringVar(&f.config_file, "c", "config.yaml", "打开配置文件")
+	flag.BoolVar(&f.web, "web", false, "启动web")
 	flag.Parse()
 	return f
 }
 
 func main() {
-
-	init_config(init_flag())
-	init_network()
+	f := init_flag()
+	init_config(f)
 	init_mysql()
+	init_network()
 	init_signal()
 
 	app.start()
@@ -137,12 +143,28 @@ func main() {
 	}
 
 }
+func (app *appConfig) get_cookie() (string, error) {
+	var cookie string
+	if app.Basic.Host_id == 0 {
+		return "", fmt.Errorf("配置文件中host_id为0，cookie将为空")
+	}
+
+	if err := app.db.QueryRow("select cookie from cookie where host_id = ?", app.Basic.Host_id).Scan(&cookie); err != nil {
+		return "", err
+	}
+	if app.cookie != cookie {
+		log.Infof("使用新cookie: %s", cookie)
+	}
+
+	app.cookie = cookie
+	return app.cookie, nil
+}
 func (app *appConfig) start() {
-	if app.Identified.Test {
+	if app.Basic.Test {
 		log.Infof("测试模式启动")
 		return
 	}
-	r, err := app.db.Exec("insert into application (app_id) values(?)", app.Identified.App)
+	r, err := app.db.Exec("insert into application (app_id) values(?)", app.Basic.App_id)
 	if err != nil {
 		panic(err)
 	}
@@ -159,16 +181,10 @@ func (app *appConfig) update(status int) {
 	}
 }
 func (app *appConfig) end() {
-	if app.Identified.Test {
+	if app.Basic.Test {
 		return
 	}
 	if _, err := app.db.Exec("update application set status=? where id=?", MYSQL_APPLICATION_STATUS_OVER, app.primary_id); err != nil {
 		log.Error(err)
 	}
-}
-
-// 随机挂起 x 秒
-func sleep(i int) {
-	log.Infof("挂起%d秒", i)
-	time.Sleep(time.Duration(i) * time.Second)
 }

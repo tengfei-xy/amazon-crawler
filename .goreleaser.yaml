@@ -8,13 +8,13 @@ before:
     - go generate ./...
 builds:
   - 
-    main: .
-    ldflags:
-      - -s
-      - -w
+    flags:
       - -trimpath
+    main: .
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w
     goos:
       - linux
       - windows
