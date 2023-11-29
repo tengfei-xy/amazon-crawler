@@ -36,7 +36,7 @@ cookie格式如下
 session-id=xxxx; session-id-time=2082787201l; i18n-prefs=GBP; sp-cdn="L5Z9:JP"; ubid-acbuk=xxx; session-token="xxxx"; csm-hit=xxx
 ```
 
-注：cookie有效天数3-4天，当cookie失效可能会返回504,403等错误，
+注：亚马逊的cokie，半小时左右后会失效，但也会传回有效cookie，接着用就行。替换三次左右，cookie就变成天单位的有效时长了。至少有个2天。
 
 注：cookie在程序运行时可随时修改，每次发送http请求时都会从数据库从重新获取一次
 
