@@ -30,21 +30,12 @@ func (seller *sellerStruct) main() error {
 
 	log.Infof("------------------------")
 	log.Infof("2. 开始从产品页获取商家ID")
-	r, err := app.db.Exec("UPDATE product SET status = ? ,app = ? WHERE (status = ? or status=?) and (app=? or app=?)  LIMIT 100", MYSQL_SELLER_STATUS_CHEKCK, app.Basic.App_id, MYSQL_SELLER_STATUS_INSERT, MYSQL_SELLER_STATUS_ERROR_OVER, 0, app.Basic.App_id)
+	_, err := app.db.Exec("UPDATE product SET status = ? ,app = ? WHERE (status = ? or status=?) and (app=? or app=?)  LIMIT 100", MYSQL_SELLER_STATUS_CHEKCK, app.Basic.App_id, MYSQL_SELLER_STATUS_INSERT, MYSQL_SELLER_STATUS_ERROR_OVER, 0, app.Basic.App_id)
 	if err != nil {
 		log.Errorf("更新product表失败,%v", err)
 		return err
 	}
-	num, err := r.RowsAffected()
-	if err != nil {
-		log.Errorf("获取product表更新行数失败,%v", err)
-		return err
-	}
-	log.Infof("本次需要更新:%d条", num)
-	if num == 0 {
-		sleep(120)
-		return nil
-	}
+
 	row, err := app.db.Query(`select id,url,param from product where status=? and app = ?`, MYSQL_SELLER_STATUS_CHEKCK, app.Basic.App_id)
 	if err != nil {
 		log.Errorf("查询product表失败,%v", err)

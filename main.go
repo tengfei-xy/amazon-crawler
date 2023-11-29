@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -152,6 +153,7 @@ func (app *appConfig) get_cookie() (string, error) {
 	if err := app.db.QueryRow("select cookie from cookie where host_id = ?", app.Basic.Host_id).Scan(&cookie); err != nil {
 		return "", err
 	}
+	cookie = strings.TrimSpace(cookie)
 	if app.cookie != cookie {
 		log.Infof("使用新cookie: %s", cookie)
 	}
