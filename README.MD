@@ -17,15 +17,15 @@
 导入文件并初始化数据库参考命令：
 
 ```
-bin/mysql -u root -p < xxx.sql
+bin/mysql -u root -p < ddl.sql
 ```
 
 由于工具需要关键词来进行搜索，所以需要初始化一些关键词，参考[关键词数据库文件]((https://github.com/tengfei-xy/amazon-crawler/blob/main/sql/category.sql))
 
-导入方式
+导入命令
 
 ```
-bin/mysql -D amazon -u root -p < xxx.sql
+bin/mysql -D amazon -u root -p < category.sql
 ```
 
 
