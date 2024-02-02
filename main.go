@@ -14,7 +14,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const AMAZON_UK = "https://www.amazon.co.uk"
 const MYSQL_APPLICATION_STATUS_START int = 0
 const MYSQL_APPLICATION_STATUS_OVER int = 1
 const MYSQL_APPLICATION_STATUS_SEARCH int = 2
@@ -40,11 +39,14 @@ type Enable struct {
 	Trn    bool `yaml:"trn"`
 }
 type Basic struct {
-	App_id  int  `yaml:"app_id"`
-	Host_id int  `yaml:"host_id"`
-	Test    bool `yaml:"test"`
+	App_id  int    `yaml:"app_id"`
+	Host_id int    `yaml:"host_id"`
+	Test    bool   `yaml:"test"`
+	Domain  string `yaml:"domain"`
 }
 type Proxy struct {
+	Enable bool `yaml:"enable"`
+
 	Sockc5 []string `yaml:"socks5"`
 }
 type Mysql struct {
@@ -56,7 +58,6 @@ type Mysql struct {
 }
 type flagStruct struct {
 	config_file string
-	web         bool
 }
 
 var app appConfig
@@ -70,7 +71,7 @@ func init_config(flag flagStruct) {
 	if err != nil {
 		panic(err)
 	}
-	if !app.Enable.Search && !app.Enable.Seller && !app.Enable.Trn {
+	if !app.Exec.Enable.Search && !app.Exec.Enable.Seller && !app.Exec.Enable.Trn {
 		panic("没有启动功能，检查配置文件的enable配置的选项")
 	}
 	log.Infof("程序标识:%d 主机标识:%d", app.Basic.App_id, app.Basic.Host_id)
@@ -119,7 +120,6 @@ func init_signal() {
 func init_flag() flagStruct {
 	var f flagStruct
 	flag.StringVar(&f.config_file, "c", "config.yaml", "打开配置文件")
-	flag.BoolVar(&f.web, "web", false, "启动web")
 	flag.Parse()
 	return f
 }

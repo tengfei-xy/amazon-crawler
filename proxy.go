@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"time"
@@ -8,9 +10,17 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+func rangdom_range(max int) int {
+	rand.NewSource(time.Now().UnixNano())
+	return rand.Intn(max)
+}
 func get_socks5_proxy() (proxy.Dialer, error) {
 	// 创建一个SOCKS5代理拨号器
-	return proxy.SOCKS5("tcp", app.Proxy.Sockc5[0], nil, proxy.Direct)
+	len := len(app.Proxy.Sockc5)
+	if len == 0 {
+		return nil, fmt.Errorf("没有可用的代理")
+	}
+	return proxy.SOCKS5("tcp", app.Proxy.Sockc5[rangdom_range(len)], nil, proxy.Direct)
 }
 func get_client() http.Client {
 
@@ -18,12 +28,16 @@ func get_client() http.Client {
 	if err != nil {
 		return http.Client{Timeout: time.Second * 60}
 	}
-	return http.Client{
-		Transport: &http.Transport{
-			Dial: proxy.Dial,
-		},
+	if app.Proxy.Enable {
+		return http.Client{
+			Transport: &http.Transport{
+				Dial: proxy.Dial,
+			},
 
-		Timeout: time.Second * 60,
+			Timeout: time.Second * 60,
+		}
+	} else {
+		return http.Client{Timeout: time.Second * 60}
 	}
 }
 

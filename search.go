@@ -142,7 +142,7 @@ func (s *search) request(seq int) (*goquery.Document, error) {
 	//   -H 'viewport-width: 2028' \
 	//   --compressed
 
-	url := fmt.Sprintf("https://www.amazon.co.uk/s?k=%s&page=%d&crid=2V9436DZJ6IJF&qid=1699839233&sprefix=clothe%%2Caps%%2C552&ref=sr_pg_2", s.en_key, seq)
+	url := fmt.Sprintf("https://%s/s?k=%s&page=%d&crid=2V9436DZJ6IJF&qid=1699839233&sprefix=clothe%%2Caps%%2C552&ref=sr_pg_2", app.Domain, s.en_key, seq)
 	log.Infof("开始搜索 关键词:%s 页面:%d url:%s", s.zh_key, seq, url)
 
 	client := get_client()

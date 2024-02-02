@@ -10,7 +10,13 @@ basic:
   # 测试模式，将不连接数据库
   test: false
 
+  # 填写亚马逊的域名,比如 www.amazon.co.uk,www.amazon.com
+  # 建议填写三级域名
+  domain: "www.amazon.com"
+  
 proxy:
+  # 设置是否启动代理
+  enable: true
   socks5:
     # socks5必须使用，目前仅仅支持一个
     # 启动socks代理，可以尝试安装gost

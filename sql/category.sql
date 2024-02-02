@@ -1,4 +1,3 @@
-[tengfei@core ~]$ cat cateory.sql 
 -- MySQL dump 10.13  Distrib 5.7.35, for Linux (x86_64)
 --
 -- Host: localhost    Database: amazon
@@ -52,4 +51,3 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2023-11-21 10:42:28
-[tengfei@core ~]$ 

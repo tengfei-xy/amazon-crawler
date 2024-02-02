@@ -37,19 +37,6 @@ SET character_set_client = utf8;
 SET character_set_client = @saved_cs_client;
 
 --
--- Temporary table structure for view `公司信息表`
---
-
-DROP TABLE IF EXISTS `公司信息表`;
-/*!50001 DROP VIEW IF EXISTS `公司信息表`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `公司信息表` AS SELECT 
- 1 AS `数量`,
- 1 AS `count(*)`*/;
-SET character_set_client = @saved_cs_client;
-
---
 -- Temporary table structure for view `占用空间表`
 --
 
@@ -60,6 +47,19 @@ SET character_set_client = utf8;
 /*!50001 CREATE VIEW `占用空间表` AS SELECT 
  1 AS `Database`,
  1 AS `Size (MB)`*/;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Temporary table structure for view `商家查找表`
+--
+
+DROP TABLE IF EXISTS `商家查找表`;
+/*!50001 DROP VIEW IF EXISTS `商家查找表`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE VIEW `商家查找表` AS SELECT 
+ 1 AS `数量`,
+ 1 AS `count(*)`*/;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -115,7 +115,7 @@ CREATE TABLE `application` (
   `status` tinyint(1) NOT NULL DEFAULT '0',
   `update` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=125 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -131,7 +131,7 @@ CREATE TABLE `category` (
   `en_key` varchar(50) NOT NULL,
   `priority` int(11) DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1014 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=1015 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -204,7 +204,7 @@ CREATE TABLE `seller` (
   `company_id` char(16) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `seller_id_UNIQUE` (`seller_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100739 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=115613 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -232,24 +232,6 @@ USE `amazon`;
 /*!50001 SET collation_connection      = @saved_col_connection */;
 
 --
--- Final view structure for view `公司信息表`
---
-
-/*!50001 DROP VIEW IF EXISTS `公司信息表`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `公司信息表` AS select (case `seller`.`info_status` when 0 then '没查找' when 1 then '公司ID' when 2 then '已完整' when 3 then '没有信息' when 4 then '多个信息' end) AS `数量`,count(0) AS `count(*)` from `seller` where (`seller`.`status` = 1) group by `seller`.`info_status` */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-
---
 -- Final view structure for view `占用空间表`
 --
 
@@ -263,6 +245,24 @@ USE `amazon`;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
 /*!50001 VIEW `占用空间表` AS select `information_schema`.`tables`.`TABLE_SCHEMA` AS `Database`,((sum((`information_schema`.`tables`.`DATA_LENGTH` + `information_schema`.`tables`.`INDEX_LENGTH`)) / 1024) / 1024) AS `Size (MB)` from `information_schema`.`tables` group by `information_schema`.`tables`.`TABLE_SCHEMA` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `商家查找表`
+--
+
+/*!50001 DROP VIEW IF EXISTS `商家查找表`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
+/*!50001 VIEW `商家查找表` AS select (case `seller`.`status` when 0 then '未查找' when 1 then '中国ID' when 2 then '空ID' when 3 then '其他ID' when 4 then '异常ID' end) AS `数量`,count(0) AS `count(*)` from `seller` group by `seller`.`status` */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -330,4 +330,4 @@ USE `amazon`;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-11-21 10:37:17
+-- Dump completed on 2024-02-02 19:05:53

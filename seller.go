@@ -50,7 +50,7 @@ func (seller *sellerStruct) main() error {
 			continue
 		}
 
-		url = AMAZON_UK + url + param
+		url = app.Domain + url + param
 		log.Infof("查找商家链接 ID:%d url:%s", primary_id, url)
 		err := seller.request(url)
 		if err != nil {
@@ -112,7 +112,7 @@ func (seller *sellerStruct) request(url string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authority", `www.amazon.co.uk`)
+	req.Header.Set("Authority", app.Domain)
 	req.Header.Set("Accept", `text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7`)
 	req.Header.Set("Accept-Language", `zh-CN,zh;q=0.9`)
 	req.Header.Set("cache-control", `max-age=0`)
@@ -127,7 +127,7 @@ func (seller *sellerStruct) request(url string) error {
 		req.Header.Set("Cookie", app.cookie)
 	}
 	req.Header.Set("upgrade-insecure-requests", `1`)
-	req.Header.Set("Referer", "https://www.amazon.co.uk/s?k=Hardware+electricia%27n&crid=3CR8DCX0B3L5U&sprefix=hardware+electricia%27n%2Caps%2C714&ref=nb_sb_noss")
+	req.Header.Set("Referer", fmt.Sprintf("https://%s/?k=Hardware+electricia%%27n&crid=3CR8DCX0B3L5U&sprefix=hardware+electricia%%27n%%2Caps%%2C714&ref=nb_sb_noss", app.Domain))
 	req.Header.Set("Sec-Fetch-Dest", `empty`)
 	req.Header.Set("Sec-Fetch-Mode", `cors`)
 	req.Header.Set("Sec-Fetch-Site", `same-origin`)

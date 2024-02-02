@@ -12,13 +12,23 @@
 
 ## 数据库
 
-仅支持mysql，DDL代码参考[文件](https://github.com/tengfei-xy/amazon-crawler/blob/main/sql/ddl.sql)，由于工具需要关键词来进行搜索，所以需要初始化一些关键词，参考[关键词数据库文件]((https://github.com/tengfei-xy/amazon-crawler/blob/main/sql/category.sql))
+仅支持mysql，DDL代码参考[文件](https://github.com/tengfei-xy/amazon-crawler/blob/main/sql/ddl.sql)，
 
-导入文件并初始化参考命令：
+导入文件并初始化数据库参考命令：
 
 ```
 bin/mysql -u root -p < xxx.sql
 ```
+
+由于工具需要关键词来进行搜索，所以需要初始化一些关键词，参考[关键词数据库文件]((https://github.com/tengfei-xy/amazon-crawler/blob/main/sql/category.sql))
+
+导入方式
+
+```
+bin/mysql -D amazon -u root -p < xxx.sql
+```
+
+
 
 ## 配置文件
 
