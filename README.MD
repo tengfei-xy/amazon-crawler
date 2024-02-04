@@ -2,11 +2,17 @@
 
 一种在亚马逊平台分布式抓取TRN(Trade Register Number)的工具，适用多种主流操作系统
 
-# 一、项目说明
+**问题反馈（微信号）**： SXL--LP
+
+# 一、爬虫说明
+
+请尊守网站的robots.txt，本项目中的程序的任何http请求均取决于robots.txt
+
+# 二、项目说明
 
 本项目是通过关键词在亚马逊进行搜索的，并将搜索结果保留到数据库中并提取每个商品的卖家的信息，最后从卖家信息中提取TRN。由于每个步骤相互独立，因此适合分布式运行。
 
-# 二、初始化说明
+# 三、初始化说明
 
 [下载](https://github.com/tengfei-xy/amazon-crawler/releases)
 
@@ -52,7 +58,7 @@ session-id=xxxx; session-id-time=2082787201l; i18n-prefs=GBP; sp-cdn="L5Z9:JP"; 
 
 注：对于从亚马逊网页中获取cookie时，最好同意页面中提示的cookie，让cookie的存活更久
 
-# 三、启动
+# 四、启动
 
 ```
 ./amazon-crawler -c config.yaml
@@ -60,9 +66,9 @@ session-id=xxxx; session-id-time=2082787201l; i18n-prefs=GBP; sp-cdn="L5Z9:JP"; 
 
 
 
-# 其他
+# 五、运行情况
 
-**运行（4天）情况：**
+> 4天
 
 1k多个关键词，两次搜索，共发现235334个产品
 
@@ -92,7 +98,7 @@ mysql> SELECT * FROM amazon.产品检查表;
 5 rows in set (0.10 sec)
 ```
 
-**问题反馈（微信号）：** SXL--LP
+
 
 
 

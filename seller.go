@@ -50,7 +50,12 @@ func (seller *sellerStruct) main() error {
 			continue
 		}
 
-		url = app.Domain + url + param
+		url = "https://" + app.Domain + url + param
+		if err := robot.IsAllow(userAgent, url); err != nil {
+			log.Errorf("%v", err)
+			continue
+		}
+
 		log.Infof("查找商家链接 ID:%d url:%s", primary_id, url)
 		err := seller.request(url)
 		if err != nil {
@@ -95,18 +100,6 @@ func (seller *sellerStruct) main() error {
 }
 
 func (seller *sellerStruct) request(url string) error {
-
-	// 	curl 'https://www.amazon.co.uk/iSTYLE-Practical-Functions-Monitoring-Waterproof/dp/B07X3GFNSZ/ref=sr_1_50?crid=2V9436DZJ6IJF&keywords=health+monitoring&qid=1700117509&sprefix=clothe%2Caps%2C552&sr=8-50' \
-	//   -H 'device-memory: 8' \
-	//   -H 'downlink: 1.5' \
-	//   -H 'dpr: 2' \
-	//   -H 'ect: 3g' \
-	//   -H 'rtt: 350' \
-	//   -H ': 1' \
-	//   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' \
-	//   -H 'viewport-width: 2048' \
-	//   --compressed
-
 	client := get_client()
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -131,7 +124,7 @@ func (seller *sellerStruct) request(url string) error {
 	req.Header.Set("Sec-Fetch-Dest", `empty`)
 	req.Header.Set("Sec-Fetch-Mode", `cors`)
 	req.Header.Set("Sec-Fetch-Site", `same-origin`)
-	req.Header.Set("User-Agent", `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36`)
+	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("sec-ch-ua", `"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"`)
 	req.Header.Set("sec-ch-ua-mobile", `?0`)
 	req.Header.Set("sec-ch-ua-platform", `"macOS"`)

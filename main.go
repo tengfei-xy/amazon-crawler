@@ -61,6 +61,9 @@ type flagStruct struct {
 }
 
 var app appConfig
+var robot Robots
+
+const userAgent = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36`
 
 func init_config(flag flagStruct) {
 	yamlFile, err := os.ReadFile(flag.config_file)
@@ -75,6 +78,17 @@ func init_config(flag flagStruct) {
 		panic("没有启动功能，检查配置文件的enable配置的选项")
 	}
 	log.Infof("程序标识:%d 主机标识:%d", app.Basic.App_id, app.Basic.Host_id)
+}
+func init_rebots() {
+	robotTxt := fmt.Sprintf("https://%s/robots.txt", app.Domain)
+
+	log.Infof("加载文件: %s", robotTxt)
+	txt, err := request_get(robotTxt, userAgent)
+	if err != nil {
+		log.Error("网络错误")
+		panic(err)
+	}
+	robot = GetRobotFromTxt(txt)
 }
 func init_mysql() {
 	DB, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", app.Mysql.Username, app.Mysql.Password, app.Mysql.Ip, app.Mysql.Port, app.Mysql.Database))
@@ -100,7 +114,6 @@ func init_network() {
 		panic(err)
 	}
 
-	log.Info("网页测试成功")
 }
 func init_signal() {
 	// 创建一个通道来接收操作系统的信号
@@ -127,6 +140,7 @@ func init_flag() flagStruct {
 func main() {
 	f := init_flag()
 	init_config(f)
+	init_rebots()
 	init_mysql()
 	init_network()
 	init_signal()

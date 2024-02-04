@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -62,9 +61,9 @@ func (s *search) main() error {
 				s.start--
 				sleep(120)
 				continue
+
 			default:
 				log.Error(err)
-				sleep(120)
 				continue
 			}
 			s.get_product_url(h)
@@ -116,34 +115,12 @@ func (s *search) set_en_key() string {
 	return strings.ReplaceAll(strings.ReplaceAll(s.en_key, " ", "+"), "'", "%27")
 }
 func (s *search) request(seq int) (*goquery.Document, error) {
-	// 	curl 'https://www.amazon.co.uk/s?k=server&page=2&crid=2V9436DZJ6IJF&qid=1699839233&sprefix=clothe%2Caps%2C552&ref=sr_pg_2' \
-	//   -H 'authority: www.amazon.co.uk' \
-	//   -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' \
-	//   -H 'accept-language: zh-CN,zh;q=0.9' \
-	//   -H 'cache-control: no-cache' \
-	//   -H 'device-memory: 8' \
-	//   -H 'downlink: 1.55' \
-	//   -H 'dpr: 2' \
-	//   -H 'ect: 3g' \
-	//   -H 'pragma: no-cache' \
-	//   -H 'rtt: 400' \
-	//   -H 'sec-ch-device-memory: 8' \
-	//   -H 'sec-ch-dpr: 2' \
-	//   -H 'sec-ch-ua: "Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"' \
-	//   -H 'sec-ch-ua-mobile: ?0' \
-	//   -H 'sec-ch-ua-platform: "macOS"' \
-	//   -H 'sec-ch-ua-platform-version: "14.1.0"' \
-	//   -H 'sec-ch-viewport-width: 2028' \
-	//   -H 'sec-fetch-dest: document' \
-	//   -H 'sec-fetch-mode: navigate' \
-	//   -H 'sec-fetch-site: same-origin' \
-	//   -H 'sec-fetch-user: ?1' \
-	//   -H 'upgrade-insecure-requests: 1' \
-	//   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' \
-	//   -H 'viewport-width: 2028' \
-	//   --compressed
-
 	url := fmt.Sprintf("https://%s/s?k=%s&page=%d&crid=2V9436DZJ6IJF&qid=1699839233&sprefix=clothe%%2Caps%%2C552&ref=sr_pg_2", app.Domain, s.en_key, seq)
+
+	err := robot.IsAllow(userAgent, url)
+	if err != nil {
+		return nil, err
+	}
 	log.Infof("开始搜索 关键词:%s 页面:%d url:%s", s.zh_key, seq, url)
 
 	client := get_client()
@@ -169,7 +146,7 @@ func (s *search) request(seq int) (*goquery.Document, error) {
 	req.Header.Set("Sec-Fetch-Dest", `empty`)
 	req.Header.Set("Sec-Fetch-Mode", `cors`)
 	req.Header.Set("Sec-Fetch-Site", `same-origin`)
-	req.Header.Set("User-Agent", `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36`)
+	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("sec-ch-ua", `"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"`)
 	req.Header.Set("sec-ch-ua-mobile", `?0`)
 	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
@@ -223,27 +200,31 @@ func (s *search) get_product_url(doc *goquery.Document) {
 	log.Infof("找到商品项数:%d 关键词:%s", data_index.Length(), s.zh_key)
 
 	data_index.Each(func(i int, g *goquery.Selection) {
+
 		link, exist := g.Find("a").First().Attr("href")
 
 		if exist {
+			// log.Infof("找到商品项中的链接 关键词: %s 页面商品序号: %d  商品原始链接: %s ", s.zh_key, i, link)
+
+			if err := robot.IsAllow(userAgent, link); err != nil {
+				log.Errorf("此链接不允许访问 关键词:%s 页面商品序号:%d %v", s.zh_key, i, err)
+				return
+			}
 			if strings.HasPrefix(link, "/s") || strings.HasPrefix(link, "/gp/") || strings.Contains(link, `javascript:void(0)`) {
 				link = fmt.Sprintf("https://%s%s", app.Domain, link)
-				log.Errorf("不是预设的商品链接,可能需要验证cookie 关键词:%s 具体链接:%s", s.zh_key, link)
-			} else if strings.Contains(link, `%2Fdp%2F`) {
-				// 解码
-				link, _ = url.QueryUnescape(link)
-				// 从/dp/开始截取
-				link = "/dp/" + strings.Split(link, "/dp/")[1]
-
+				log.Errorf("不是预设的商品链接,可能需要验证cookie 关键词:%s 捕获链接:%s", s.zh_key, link)
+			} else if strings.HasPrefix(link, "https://aax-") {
+				log.Errorf("不是预设的商品链接,可能需要验证cookie 关键词:%s 捕获链接:%s", s.zh_key, link)
+				return
 			}
 			if strings.Contains(link, `/dp/`) {
 				link = "/dp/" + strings.Split(link, "/dp/")[1]
 			}
+			// log.Infof("找到商品项中的链接 关键词:%s 页面商品序号:%d 处理后的商品链接:%s", s.zh_key, i, link)
 			s.deal_prouct_url(link)
 
 		} else {
-			link = fmt.Sprintf("https://%s%s", app.Domain, link)
-			log.Errorf("此商品项中未找到链接 关键词:%s 商品链接:%s 页面商品序号:%d", s.zh_key, link, i)
+			log.Errorf("此商品项中未找到链接 关键词:%s 页面商品序号:%d", s.zh_key, i)
 		}
 
 	})

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"net/http"
@@ -53,4 +54,27 @@ func telnet(ip string) bool {
 			return false
 		}
 	}
+}
+func request_get(url string, ua string) (string, error) {
+	client := get_client()
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("User-Agent", ua)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("状态码:%d", resp.StatusCode)
+	}
+
+	resp_data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(resp_data), nil
 }

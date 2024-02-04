@@ -69,6 +69,13 @@ func (trn *trnStruct) main() error {
 			log.Error(err)
 			continue
 		}
+		trn.url = fmt.Sprintf("https://%s/sp?ie=UTF8&seller=%s", app.Domain, trn.seller_id)
+
+		if err := robot.IsAllow(userAgent, trn.url); err != nil {
+			log.Errorf("%v", err)
+			continue
+		}
+
 		for err := trn.request(); err != nil; {
 			log.Error(err)
 			sleep(120)
@@ -94,24 +101,9 @@ func (trn *trnStruct) main() error {
 //
 //	找到 91440101MA9Y624U3K
 func (trn *trnStruct) request() error {
-	trn.url = fmt.Sprintf("%s/sp?ie=UTF8&seller=%s", app.Domain, trn.seller_id)
 
 	log.Infof("查找TRN 链接: %s", trn.url)
 
-	//	curl 'https://www.amazon.co.uk/sp?ie=UTF8&seller=A3U41ABBIYUF4H' \
-	//	  -H 'authority: www.amazon.co.uk' \
-	//	  -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' \
-	//	  -H 'accept-language: zh-CN,zh;q=0.9' \
-	//	  -H 'cache-control: max-age=0' \
-	//	  -H 'device-memory: 8' \
-	//	  -H 'downlink: 1.5' \
-	//	  -H 'dpr: 2' \
-	//	  -H 'ect: 3g' \
-	//	  -H 'rtt: 350' \
-	//	  -H 'upgrade-insecure-requests: 1' \
-	//	  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' \
-	//	  -H 'viewport-width: 2048' \
-	//	  --compressed
 	client := get_client()
 	req, err := http.NewRequest("GET", trn.url, nil)
 	if err != nil {
@@ -136,7 +128,7 @@ func (trn *trnStruct) request() error {
 	req.Header.Set("Sec-Fetch-Dest", `empty`)
 	req.Header.Set("Sec-Fetch-Mode", `cors`)
 	req.Header.Set("Sec-Fetch-Site", `same-origin`)
-	req.Header.Set("User-Agent", `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36`)
+	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("sec-ch-ua", `"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"`)
 	req.Header.Set("sec-ch-ua-mobile", `?0`)
 	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
