@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -209,31 +210,61 @@ func (s *search) get_product_url(doc *goquery.Document) {
 
 	res := doc.Find("div[class~=s-search-results]").First()
 
-	res.Find("div[data-index]").Each(func(i int, h *goquery.Selection) {
-		// 处理找到的 div 元素
-		link, exist := h.Find("a").First().Attr("href")
-		if !exist {
-			return
-		}
-		if strings.HasPrefix(link, "/s") || strings.HasPrefix(link, "/gp/") {
-			return
-		}
-		url := strings.Split(link, "/ref=")
-		_, err := app.db.Exec(`INSERT INTO product(url,param) values(?,?)`, url[0], "/ref="+url[1])
-
-		if is_duplicate_entry(err) {
-			log.Infof("商品已存在 关键词:%s 链接:%s ", s.zh_key, link)
-			return
-		}
-		if err != nil {
-			log.Errorf("商品插入失败 关键词:%s 链接:%s %v ", s.zh_key, link, err)
-			return
-		}
-
-		log.Infof("商品插入成功 关键词:%s 链接:%s ", s.zh_key, link)
-		s.valid += 1
-
+	if res.Length() == 0 {
+		log.Errorf("错误的页面结构 关键词:%s", s.zh_key)
 		return
+	}
+	// len res.Find("div[data-index]")
+	data_index := res.Find("div[data-index]")
+	if data_index.Length() == 0 {
+		log.Errorf("没有找到商品项 关键词:%s", s.zh_key)
+		return
+	}
+	log.Infof("找到商品项数:%d 关键词:%s", data_index.Length(), s.zh_key)
+
+	data_index.Each(func(i int, g *goquery.Selection) {
+		link, exist := g.Find("a").First().Attr("href")
+
+		if exist {
+			if strings.HasPrefix(link, "/s") || strings.HasPrefix(link, "/gp/") || strings.Contains(link, `javascript:void(0)`) {
+				link = fmt.Sprintf("https://%s%s", app.Domain, link)
+				log.Errorf("不是预设的商品链接,可能需要验证cookie 关键词:%s 具体链接:%s", s.zh_key, link)
+			} else if strings.Contains(link, `%2Fdp%2F`) {
+				// 解码
+				link, _ = url.QueryUnescape(link)
+				// 从/dp/开始截取
+				link = "/dp/" + strings.Split(link, "/dp/")[1]
+
+			}
+			if strings.Contains(link, `/dp/`) {
+				link = "/dp/" + strings.Split(link, "/dp/")[1]
+			}
+			s.deal_prouct_url(link)
+
+		} else {
+			link = fmt.Sprintf("https://%s%s", app.Domain, link)
+			log.Errorf("此商品项中未找到链接 关键词:%s 商品链接:%s 页面商品序号:%d", s.zh_key, link, i)
+		}
+
 	})
-	return
+}
+func (s *search) deal_prouct_url(link string) {
+	url := strings.Split(link, "/ref=")
+	// product_id :=
+	// product_param :=
+	// log.Infof("找到商品 关键词:%s 链接:%s 商品ID的url:%s 商品参数的url:%s ", s.zh_key, link, url[0], product_param)
+	_, err := app.db.Exec(`INSERT INTO product(url,param) values(?,?)`, url[0], "/ref="+url[1])
+
+	link = fmt.Sprintf("https://%s%s", app.Domain, link)
+	if is_duplicate_entry(err) {
+		log.Infof("商品已存在 关键词:%s 链接:%s ", s.zh_key, link)
+		return
+	}
+	if err != nil {
+		log.Errorf("商品插入失败 关键词:%s 链接:%s %v ", s.zh_key, link, err)
+		return
+	}
+
+	log.Infof("商品插入成功 关键词:%s 链接:%s ", s.zh_key, link)
+	s.valid += 1
 }

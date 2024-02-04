@@ -92,7 +92,7 @@ mysql> SELECT * FROM amazon.产品检查表;
 5 rows in set (0.10 sec)
 ```
 
-**问题反馈（微信号）：**SXL--LP
+**问题反馈（微信号）：** SXL--LP
 
 
 
