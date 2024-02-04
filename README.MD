@@ -55,7 +55,7 @@ session-id=xxxx; session-id-time=2082787201l; i18n-prefs=GBP; sp-cdn="L5Z9:JP"; 
 # 三、启动
 
 ```
-./amazon-crawler -c xxx.yaml
+./amazon-crawler -c config.yaml
 ```
 
 
