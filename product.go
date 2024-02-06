@@ -175,7 +175,7 @@ func (product *productStruct) get_seller_id() string {
 	return product.id
 }
 func (product *productStruct) insert_selll_id() error {
-	_, err := app.db.Exec("insert into seller (seller_id,app) values(?,?)", product.id, 0)
+	_, err := app.db.Exec("insert into seller (seller_id,app_id) values(?,?)", product.id, 0)
 	return err
 }
 
