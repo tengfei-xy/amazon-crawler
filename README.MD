@@ -35,7 +35,7 @@ bin/mysql -u root -p < ddl.sql
 # 此语句应建表后立即使用
 bin/mysql -D amazon -u root -p < category.sql
 # 若只添加测试使用单条命令，使用下列语句,并设置最低的优先级为0
-# iinsert into `category` (`zh_key`,`en_key`,priority) VALUES ('音响','speakers',0);
+# insert into `category` (`zh_key`,`en_key`,priority) VALUES ('音响','speakers',0);
 ```
 
 创建amazone用户
