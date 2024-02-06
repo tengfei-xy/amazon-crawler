@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -204,35 +205,43 @@ func (s *searchStruct) get_product_url(doc *goquery.Document) {
 		link, exist := g.Find("a").First().Attr("href")
 
 		if exist {
-			// log.Infof("找到商品项中的链接 关键词: %s 页面商品序号: %d  商品原始链接: %s ", s.zh_key, i, link)
+			link, _ = url.QueryUnescape(link)
+
+			// log.Infof("找到商品项中的链接 关键词:%s 页面商品序号:%d 商品原始链接: %s ", s.zh_key, i, link)
 
 			if err := robot.IsAllow(userAgent, link); err != nil {
-				log.Errorf("此链接不允许访问 关键词:%s 页面商品序号:%d %v", s.zh_key, i, err)
+				log.Errorf("此链接不允许访问 关键词:%s %v", s.zh_key, err)
 				return
 			}
-			if strings.HasPrefix(link, "/s") || strings.HasPrefix(link, "/gp/") || strings.Contains(link, `javascript:void(0)`) {
+
+			if strings.HasPrefix(link, "/gp/") || strings.Contains(link, `javascript:void(0)`) {
 				link = fmt.Sprintf("https://%s%s", app.Domain, link)
-				log.Errorf("不是预设的商品链接,可能需要验证cookie 关键词:%s 捕获链接:%s", s.zh_key, link)
+				log.Warnf("非预设的链接跳过此链接 关键词:%s 捕获链接:%s", s.zh_key, link)
 			} else if strings.HasPrefix(link, "https://aax-") {
-				log.Errorf("不是预设的商品链接,可能需要验证cookie 关键词:%s 捕获链接:%s", s.zh_key, link)
+				log.Warnf("非预设的链接跳过此链接 关键词:%s 捕获链接:%s", s.zh_key, link)
 				return
 			}
 			if strings.Contains(link, `/dp/`) {
 				link = "/dp/" + strings.Split(link, "/dp/")[1]
 			}
-			// log.Infof("找到商品项中的链接 关键词:%s 页面商品序号:%d 处理后的商品链接:%s", s.zh_key, i, link)
+			// log.Infof("找到商品项中的链接 关键词:%s 处理后的商品链接:%s", s.zh_key, fmt.Sprintf("https://%s%s", app.Domain, link))
 			s.deal_prouct_url(link)
 
 		} else {
-			log.Errorf("此商品项中未找到链接 关键词:%s 页面商品序号:%d", s.zh_key, i)
+			if i != 0 {
+				log.Warnf("此商品项中未找到链接 关键词:%s 序号:%d", s.zh_key, i)
+			}
 		}
 
 	})
 }
 func (s *searchStruct) deal_prouct_url(link string) {
+	if !strings.Contains(link, "/ref=") {
+		log.Errorf("非预设的链接跳过此链接:%s", link)
+		return
+	}
 	url := strings.Split(link, "/ref=")
-	// product_id :=
-	// product_param :=
+
 	// log.Infof("找到商品 关键词:%s 链接:%s 商品ID的url:%s 商品参数的url:%s ", s.zh_key, link, url[0], product_param)
 	_, err := app.db.Exec(`INSERT INTO product(url,param) values(?,?)`, url[0], "/ref="+url[1])
 

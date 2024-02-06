@@ -59,7 +59,7 @@ func (product *productStruct) main() error {
 			continue
 		}
 
-		log.Infof("查找商家链接 ID:%d url:%s", primary_id, url)
+		log.Infof("查找商品链接 ID:%d url:%s", primary_id, url)
 		err := product.request(url)
 		if err != nil {
 			if err == ERROR_NOT_SELLER_URL {
