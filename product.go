@@ -25,14 +25,24 @@ const MYSQL_PRODUCT_STATUS_NO_PRODUCT int = 4
 
 func (product *productStruct) main() error {
 	if !app.Exec.Enable.Product {
-		log.Info("跳过 产品")
+		log.Warn("跳过 产品")
 		return nil
 	}
+	if app.Exec.Loop.Product == app.Exec.Loop.product_time {
+		log.Warn("已达到执行次数 产品")
+		return nil
+	}
+	log.Infof("------------------------")
+	log.Infof("2. 开始从产品页获取商家ID")
+	if app.Exec.Loop.Product == 0 {
+		log.Info("循环次数无限")
+	} else {
+		log.Infof("循环次数剩余:%d", app.Exec.Loop.Product-app.Exec.Loop.product_time)
+	}
+	app.Exec.Loop.product_time++
 
 	app.update(MYSQL_APPLICATION_STATUS_PRODUCT)
 
-	log.Infof("------------------------")
-	log.Infof("2. 开始从产品页获取商家ID")
 	_, err := app.db.Exec("UPDATE product SET status = ? ,app = ? WHERE (status = ? or status=?) and (app=? or app=?)  LIMIT 100", MYSQL_PRODUCT_STATUS_CHEKCK, app.Basic.App_id, MYSQL_PRODUCT_STATUS_INSERT, MYSQL_PRODUCT_STATUS_ERROR_OVER, 0, app.Basic.App_id)
 	if err != nil {
 		log.Errorf("更新product表失败,%v", err)
@@ -52,7 +62,9 @@ func (product *productStruct) main() error {
 			log.Errorf("获取product表的值失败,%v", err)
 			continue
 		}
-
+		if strings.HasPrefix(url, "http") {
+			continue
+		}
 		url = "https://" + app.Domain + url + param
 		if err := robot.IsAllow(userAgent, url); err != nil {
 			log.Errorf("%v", err)

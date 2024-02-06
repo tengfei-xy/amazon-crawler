@@ -31,12 +31,23 @@ type appConfig struct {
 }
 type Exec struct {
 	Enable          `yaml:"enable"`
+	Loop            `yaml:"loop"`
 	Search_priority int `yaml:"search_priority"`
 }
 type Enable struct {
 	Search  bool `yaml:"search"`
 	Product bool `yaml:"product"`
 	Seller  bool `yaml:"seller"`
+}
+type Loop struct {
+	All          int `yaml:"all"`
+	all_time     int
+	Search       int `yaml:"search"`
+	search_time  int
+	Product      int `yaml:"product"`
+	product_time int
+	Seller       int `yaml:"seller"`
+	seller_time  int
 }
 type Basic struct {
 	App_id  int    `yaml:"app_id"`
@@ -66,6 +77,8 @@ var robot Robots
 const userAgent = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36`
 
 func init_config(flag flagStruct) {
+	log.Infof("读取配置文件:%s", flag.config_file)
+
 	yamlFile, err := os.ReadFile(flag.config_file)
 	if err != nil {
 		panic(err)
@@ -77,6 +90,22 @@ func init_config(flag flagStruct) {
 	if !app.Exec.Enable.Search && !app.Exec.Enable.Product && !app.Exec.Enable.Seller {
 		panic("没有启动功能，检查配置文件的enable配置的选项")
 	}
+	if app.Exec.Loop.All == 0 {
+		app.Exec.Loop.All = 999999
+	}
+	if app.Exec.Loop.Search == 0 {
+		app.Exec.Loop.Search = 999999
+	}
+	if app.Exec.Loop.Product == 0 {
+		app.Exec.Loop.Product = 999999
+	}
+	if app.Exec.Loop.Seller == 0 {
+		app.Exec.Loop.Seller = 999999
+	}
+	app.Exec.product_time = 0
+	app.Exec.search_time = 0
+	app.Exec.seller_time = 0
+
 	log.Infof("程序标识:%d 主机标识:%d", app.Basic.App_id, app.Basic.Host_id)
 }
 func init_rebots() {
@@ -146,7 +175,8 @@ func main() {
 	init_signal()
 
 	app.start()
-	for {
+
+	for app.Exec.Loop.all_time = 0; app.Exec.Loop.all_time < app.Exec.Loop.All; app.Exec.Loop.all_time++ {
 		var search searchStruct
 		search.main()
 

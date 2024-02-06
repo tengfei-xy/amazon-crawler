@@ -53,11 +53,23 @@ func (seller *sellerStruct) start() error {
 func (seller *sellerStruct) main() error {
 
 	if !app.Exec.Enable.Seller {
-		log.Info("跳过 获取商家信息")
+		log.Warn("跳过 获取商家信息")
+		return nil
+	}
+	if app.Exec.Loop.Seller == app.Exec.Loop.seller_time {
+		log.Warn("已经达到执行次数 获取商家信息")
 		return nil
 	}
 
 	seller.prepare()
+
+	if app.Exec.Loop.Seller == 0 {
+		log.Info("循环次数无限")
+	} else {
+		log.Infof("循环次数剩余:%d", app.Exec.Loop.Seller-app.Exec.Loop.seller_time)
+	}
+	app.Exec.Loop.seller_time++
+
 	if err := seller.start(); err != nil {
 		return err
 	}

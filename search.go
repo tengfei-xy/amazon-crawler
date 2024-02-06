@@ -29,13 +29,26 @@ type searchStruct struct {
 
 func (s *searchStruct) main() error {
 	if !app.Exec.Enable.Search {
-		log.Info("跳过 搜索")
+		log.Warn("跳过 搜索")
 		return nil
 	}
-	app.update(MYSQL_APPLICATION_STATUS_SEARCH)
+	if app.Exec.Loop.Search == app.Exec.Loop.search_time {
+		log.Warn("已经达到执行次数 搜索")
+		return nil
+	}
 
 	log.Infof("------------------------")
 	log.Infof("1. 开始搜索关键词")
+
+	if app.Exec.Loop.Search == 0 {
+		log.Info("循环次数无限")
+	} else {
+		log.Infof("循环次数剩余:%d", app.Exec.Loop.Search-app.Exec.Loop.search_time)
+	}
+	app.Exec.Loop.search_time++
+
+	app.update(MYSQL_APPLICATION_STATUS_SEARCH)
+
 	row, err := s.get_category()
 	if err != nil {
 		log.Error(err)
@@ -236,7 +249,7 @@ func (s *searchStruct) get_product_url(doc *goquery.Document) {
 	})
 }
 func (s *searchStruct) deal_prouct_url(link string) {
-	if !strings.Contains(link, "/ref=") {
+	if !strings.Contains(link, "/ref=") || strings.HasPrefix(link, "https://") {
 		log.Errorf("非预设的链接跳过此链接:%s", link)
 		return
 	}
