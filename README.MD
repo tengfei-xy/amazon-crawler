@@ -18,11 +18,12 @@
 
 ## 数据库
 
-仅支持mysql，DDL代码参考[文件](https://github.com/tengfei-xy/amazon-crawler/blob/main/sql/ddl.sql)，
+> 仅支持mysql
 
-导入文件并初始化数据库参考命令：
+导入[SQL文件](https://github.com/tengfei-xy/amazon-crawler/blob/main/sql/ddl.sql)并初始化数据库参考命令：
 
-```
+```bash
+# 执行后，将丢弃原表的数据
 bin/mysql -u root -p < ddl.sql
 ```
 
@@ -30,8 +31,24 @@ bin/mysql -u root -p < ddl.sql
 
 导入命令
 
-```
+```bash
+# 此语句应建表后立即使用
 bin/mysql -D amazon -u root -p < category.sql
+# 若只添加测试使用单条命令，使用下列语句,并设置最低的优先级为0
+# iinsert into `category` (`zh_key`,`en_key`,priority) VALUES ('音响','speakers',0);
+```
+
+创建amazone用户
+
+```sql
+# mysql 5.7.x
+GRANT ALL PRIVILEGES ON amazon.* to 'amazon'@'%'  identified by 'password';
+flush privileges;
+
+# mysql 8.x
+create user 'amazon'@'%' identified by 'password';
+GRANT ALL PRIVILEGES ON amazon.* TO 'amazon'@'%' WITH GRANT OPTION;
+flush privileges;
 ```
 
 
@@ -51,6 +68,12 @@ cookie格式如下
 ```
 session-id=xxxx; session-id-time=2082787201l; i18n-prefs=GBP; sp-cdn="L5Z9:JP"; ubid-acbuk=xxx; session-token="xxxx"; csm-hit=xxx
 ```
+
+> Cookie 解析
+>
+> sp-cdn：页面中选择的配送地区
+>
+> lc-main：页面中选择的语言
 
 注：亚马逊的cokie，半小时左右后会失效，但也会传回有效cookie，接着用就行。替换三次左右，cookie就变成天单位的有效时长了。至少有个2天。
 

@@ -13,7 +13,7 @@ import (
 const MYSQL_SEARCH_STATUS_START int64 = 0
 const MYSQL_SEARCH_STATUS_OVER int64 = 1
 
-type search struct {
+type searchStruct struct {
 	zh_key        string
 	en_key        string
 	category_id   int64
@@ -26,7 +26,7 @@ type search struct {
 	product_param string
 }
 
-func (s *search) main() error {
+func (s *searchStruct) main() error {
 	if !app.Exec.Enable.Search {
 		log.Info("跳过 搜索")
 		return nil
@@ -78,7 +78,7 @@ func (s *search) main() error {
 	log.Infof("------------------------")
 	return nil
 }
-func (s *search) get_category() (*sql.Rows, error) {
+func (s *searchStruct) get_category() (*sql.Rows, error) {
 	switch app.Exec.Search_priority {
 	case 1:
 		log.Infof("搜索优先级优先")
@@ -90,7 +90,7 @@ func (s *search) get_category() (*sql.Rows, error) {
 	log.Infof("错误的输入，按搜索优先级优先")
 	return app.db.Query(`select id,zh_key,en_key from category order by priority DESC `)
 }
-func (s *search) search_start() (int64, error) {
+func (s *searchStruct) search_start() (int64, error) {
 	r, err := app.db.Exec("insert into search_statistics(category_id,app) values(?,?)", s.category_id, app.Basic.App_id)
 	if err != nil {
 		return 0, err
@@ -103,7 +103,7 @@ func (s *search) search_start() (int64, error) {
 	log.Infof("开始搜索 关键词:%s 关键词ID:%d 状态:%d(开始)", s.zh_key, s.category_id, MYSQL_SEARCH_STATUS_START)
 	return id, nil
 }
-func (s *search) search_end(insert_id int64) error {
+func (s *searchStruct) search_end(insert_id int64) error {
 	_, err := app.db.Exec("update search_statistics set status=?,end=CURRENT_TIMESTAMP,valid=? where id=?", MYSQL_SEARCH_STATUS_OVER, s.valid, insert_id)
 	if err != nil {
 		return err
@@ -111,10 +111,10 @@ func (s *search) search_end(insert_id int64) error {
 	log.Infof("搜索完成 关键词:%s 完成ID:%d 有效数:%d", s.zh_key, insert_id, s.valid)
 	return nil
 }
-func (s *search) set_en_key() string {
+func (s *searchStruct) set_en_key() string {
 	return strings.ReplaceAll(strings.ReplaceAll(s.en_key, " ", "+"), "'", "%27")
 }
-func (s *search) request(seq int) (*goquery.Document, error) {
+func (s *searchStruct) request(seq int) (*goquery.Document, error) {
 	url := fmt.Sprintf("https://%s/s?k=%s&page=%d&crid=2V9436DZJ6IJF&qid=1699839233&sprefix=clothe%%2Caps%%2C552&ref=sr_pg_2", app.Domain, s.en_key, seq)
 
 	err := robot.IsAllow(userAgent, url)
@@ -177,7 +177,7 @@ func (s *search) request(seq int) (*goquery.Document, error) {
 	return doc, nil
 }
 
-func (s *search) get_product_url(doc *goquery.Document) {
+func (s *searchStruct) get_product_url(doc *goquery.Document) {
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -229,7 +229,7 @@ func (s *search) get_product_url(doc *goquery.Document) {
 
 	})
 }
-func (s *search) deal_prouct_url(link string) {
+func (s *searchStruct) deal_prouct_url(link string) {
 	url := strings.Split(link, "/ref=")
 	// product_id :=
 	// product_param :=

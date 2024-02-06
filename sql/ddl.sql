@@ -1,6 +1,360 @@
+[tengfei@core mysql-5.7.35]$ /usr/local/mysql-5.7.35/bin/mysqldump --help
+mysqldump  Ver 10.13 Distrib 5.7.35, for Linux (x86_64)
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Dumping structure and contents of MySQL databases and tables.
+Usage: mysqldump [OPTIONS] database [tables]
+OR     mysqldump [OPTIONS] --databases [OPTIONS] DB1 [DB2 DB3...]
+OR     mysqldump [OPTIONS] --all-databases [OPTIONS]
+
+Default options are read from the following files in the given order:
+/etc/my.cnf /etc/mysql/my.cnf /usr/local/mysql-5.7.35/etc/my.cnf ~/.my.cnf 
+The following groups are read: mysqldump client
+The following options may be given as the first argument:
+--print-defaults        Print the program argument list and exit.
+--no-defaults           Don't read default options from any option file,
+                        except for login file.
+--defaults-file=#       Only read default options from the given file #.
+--defaults-extra-file=# Read this file after the global files are read.
+--defaults-group-suffix=#
+                        Also read groups with concat(group, suffix)
+--login-path=#          Read this path from the login file.
+  -A, --all-databases Dump all the databases. This will be same as --databases
+                      with all databases selected.
+  -Y, --all-tablespaces 
+                      Dump all the tablespaces.
+  -y, --no-tablespaces 
+                      Do not dump any tablespace information.
+  --add-drop-database Add a DROP DATABASE before each create.
+  --add-drop-table    Add a DROP TABLE before each create.
+                      (Defaults to on; use --skip-add-drop-table to disable.)
+  --add-drop-trigger  Add a DROP TRIGGER before each create.
+  --add-locks         Add locks around INSERT statements.
+                      (Defaults to on; use --skip-add-locks to disable.)
+  --allow-keywords    Allow creation of column names that are keywords.
+  --apply-slave-statements 
+                      Adds 'STOP SLAVE' prior to 'CHANGE MASTER' and 'START
+                      SLAVE' to bottom of dump.
+  --bind-address=name IP address to bind to.
+  --character-sets-dir=name 
+                      Directory for character set files.
+  -i, --comments      Write additional information.
+                      (Defaults to on; use --skip-comments to disable.)
+  --compatible=name   Change the dump to be compatible with a given mode. By
+                      default tables are dumped in a format optimized for
+                      MySQL. Legal modes are: ansi, mysql323, mysql40,
+                      postgresql, oracle, mssql, db2, maxdb, no_key_options,
+                      no_table_options, no_field_options. One can use several
+                      modes separated by commas. Note: Requires MySQL server
+                      version 4.1.0 or higher. This option is ignored with
+                      earlier server versions.
+  --compact           Give less verbose output (useful for debugging). Disables
+                      structure comments and header/footer constructs.  Enables
+                      options --skip-add-drop-table --skip-add-locks
+                      --skip-comments --skip-disable-keys --skip-set-charset.
+  -c, --complete-insert 
+                      Use complete insert statements.
+  -C, --compress      Use compression in server/client protocol.
+  -a, --create-options 
+                      Include all MySQL specific create options.
+                      (Defaults to on; use --skip-create-options to disable.)
+  -B, --databases     Dump several databases. Note the difference in usage; in
+                      this case no tables are given. All name arguments are
+                      regarded as database names. 'USE db_name;' will be
+                      included in the output.
+  -#, --debug[=#]     This is a non-debug version. Catch this and exit.
+  --debug-check       This is a non-debug version. Catch this and exit.
+  --debug-info        This is a non-debug version. Catch this and exit.
+  --default-character-set=name 
+                      Set the default character set.
+  --delete-master-logs 
+                      Delete logs on master after backup. This automatically
+                      enables --master-data.
+  -K, --disable-keys  '/*!40000 ALTER TABLE tb_name DISABLE KEYS */; and
+                      '/*!40000 ALTER TABLE tb_name ENABLE KEYS */; will be put
+                      in the output.
+                      (Defaults to on; use --skip-disable-keys to disable.)
+  --dump-slave[=#]    This causes the binary log position and filename of the
+                      master to be appended to the dumped data output. Setting
+                      the value to 1, will printit as a CHANGE MASTER command
+                      in the dumped data output; if equal to 2, that command
+                      will be prefixed with a comment symbol. This option will
+                      turn --lock-all-tables on, unless --single-transaction is
+                      specified too (in which case a global read lock is only
+                      taken a short time at the beginning of the dump - don't
+                      forget to read about --single-transaction below). In all
+                      cases any action on logs will happen at the exact moment
+                      of the dump.Option automatically turns --lock-tables off.
+  -E, --events        Dump events.
+  -e, --extended-insert 
+                      Use multiple-row INSERT syntax that include several
+                      VALUES lists.
+                      (Defaults to on; use --skip-extended-insert to disable.)
+  --fields-terminated-by=name 
+                      Fields in the output file are terminated by the given
+                      string.
+  --fields-enclosed-by=name 
+                      Fields in the output file are enclosed by the given
+                      character.
+  --fields-optionally-enclosed-by=name 
+                      Fields in the output file are optionally enclosed by the
+                      given character.
+  --fields-escaped-by=name 
+                      Fields in the output file are escaped by the given
+                      character.
+  -F, --flush-logs    Flush logs file in server before starting dump. Note that
+                      if you dump many databases at once (using the option
+                      --databases= or --all-databases), the logs will be
+                      flushed for each database dumped. The exception is when
+                      using --lock-all-tables or --master-data: in this case
+                      the logs will be flushed only once, corresponding to the
+                      moment all tables are locked. So if you want your dump
+                      and the log flush to happen at the same exact moment you
+                      should use --lock-all-tables or --master-data with
+                      --flush-logs.
+  --flush-privileges  Emit a FLUSH PRIVILEGES statement after dumping the mysql
+                      database.  This option should be used any time the dump
+                      contains the mysql database and any other database that
+                      depends on the data in the mysql database for proper
+                      restore. 
+  -f, --force         Continue even if we get an SQL error.
+  -?, --help          Display this help message and exit.
+  --hex-blob          Dump binary strings (BINARY, VARBINARY, BLOB) in
+                      hexadecimal format.
+  -h, --host=name     Connect to host.
+  --ignore-error=name A comma-separated list of error numbers to be ignored if
+                      encountered during dump.
+  --ignore-table=name Do not dump the specified table. To specify more than one
+                      table to ignore, use the directive multiple times, once
+                      for each table.  Each table must be specified with both
+                      database and table names, e.g.,
+                      --ignore-table=database.table.
+  --include-master-host-port 
+                      Adds 'MASTER_HOST=<host>, MASTER_PORT=<port>' to 'CHANGE
+                      MASTER TO..' in dump produced with --dump-slave.
+  --insert-ignore     Insert rows with INSERT IGNORE.
+  --lines-terminated-by=name 
+                      Lines in the output file are terminated by the given
+                      string.
+  -x, --lock-all-tables 
+                      Locks all tables across all databases. This is achieved
+                      by taking a global read lock for the duration of the
+                      whole dump. Automatically turns --single-transaction and
+                      --lock-tables off.
+  -l, --lock-tables   Lock all tables for read.
+                      (Defaults to on; use --skip-lock-tables to disable.)
+  --log-error=name    Append warnings and errors to given file.
+  --master-data[=#]   This causes the binary log position and filename to be
+                      appended to the output. If equal to 1, will print it as a
+                      CHANGE MASTER command; if equal to 2, that command will
+                      be prefixed with a comment symbol. This option will turn
+                      --lock-all-tables on, unless --single-transaction is
+                      specified too (in which case a global read lock is only
+                      taken a short time at the beginning of the dump; don't
+                      forget to read about --single-transaction below). In all
+                      cases, any action on logs will happen at the exact moment
+                      of the dump. Option automatically turns --lock-tables
+                      off.
+  --max-allowed-packet=# 
+                      The maximum packet length to send to or receive from
+                      server.
+  --net-buffer-length=# 
+                      The buffer size for TCP/IP and socket communication.
+  --no-autocommit     Wrap tables with autocommit/commit statements.
+  -n, --no-create-db  Suppress the CREATE DATABASE ... IF EXISTS statement that
+                      normally is output for each dumped database if
+                      --all-databases or --databases is given.
+  -t, --no-create-info 
+                      Don't write table creation info.
+  -d, --no-data       No row information.
+  -N, --no-set-names  Same as --skip-set-charset.
+  --opt               Same as --add-drop-table, --add-locks, --create-options,
+                      --quick, --extended-insert, --lock-tables, --set-charset,
+                      and --disable-keys. Enabled by default, disable with
+                      --skip-opt.
+  --order-by-primary  Sorts each table's rows by primary key, or first unique
+                      key, if such a key exists.  Useful when dumping a MyISAM
+                      table to be loaded into an InnoDB table, but will make
+                      the dump itself take considerably longer.
+  -p, --password[=name] 
+                      Password to use when connecting to server. If password is
+                      not given it's solicited on the tty.
+  -P, --port=#        Port number to use for connection.
+  --protocol=name     The protocol to use for connection (tcp, socket, pipe,
+                      memory).
+  -q, --quick         Don't buffer query, dump directly to stdout.
+                      (Defaults to on; use --skip-quick to disable.)
+  -Q, --quote-names   Quote table and column names with backticks (`).
+                      (Defaults to on; use --skip-quote-names to disable.)
+  --replace           Use REPLACE INTO instead of INSERT INTO.
+  -r, --result-file=name 
+                      Direct output to a given file. This option should be used
+                      in systems (e.g., DOS, Windows) that use carriage-return
+                      linefeed pairs (\r\n) to separate text lines. This option
+                      ensures that only a single newline is used.
+  -R, --routines      Dump stored routines (functions and procedures).
+  --set-charset       Add 'SET NAMES default_character_set' to the output.
+                      (Defaults to on; use --skip-set-charset to disable.)
+  --set-gtid-purged[=name] 
+                      Add 'SET @@GLOBAL.GTID_PURGED' to the output. Possible
+                      values for this option are ON, OFF and AUTO. If ON is
+                      used and GTIDs are not enabled on the server, an error is
+                      generated. If OFF is used, this option does nothing. If
+                      AUTO is used and GTIDs are enabled on the server, 'SET
+                      @@GLOBAL.GTID_PURGED' is added to the output. If GTIDs
+                      are disabled, AUTO does nothing. If no value is supplied
+                      then the default (AUTO) value will be considered.
+  --single-transaction 
+                      Creates a consistent snapshot by dumping all tables in a
+                      single transaction. Works ONLY for tables stored in
+                      storage engines which support multiversioning (currently
+                      only InnoDB does); the dump is NOT guaranteed to be
+                      consistent for other storage engines. While a
+                      --single-transaction dump is in process, to ensure a
+                      valid dump file (correct table contents and binary log
+                      position), no other connection should use the following
+                      statements: ALTER TABLE, DROP TABLE, RENAME TABLE,
+                      TRUNCATE TABLE, as consistent snapshot is not isolated
+                      from them. Option automatically turns off --lock-tables.
+  --dump-date         Put a dump date to the end of the output.
+                      (Defaults to on; use --skip-dump-date to disable.)
+  --skip-opt          Disable --opt. Disables --add-drop-table, --add-locks,
+                      --create-options, --quick, --extended-insert,
+                      --lock-tables, --set-charset, and --disable-keys.
+  -S, --socket=name   The socket file to use for connection.
+  --secure-auth       Refuse client connecting to server if it uses old
+                      (pre-4.1.1) protocol. Deprecated. Always TRUE
+  --ssl-mode=name     SSL connection mode.
+  --ssl               Deprecated. Use --ssl-mode instead.
+                      (Defaults to on; use --skip-ssl to disable.)
+  --ssl-verify-server-cert 
+                      Deprecated. Use --ssl-mode=VERIFY_IDENTITY instead.
+  --ssl-ca=name       CA file in PEM format.
+  --ssl-capath=name   CA directory.
+  --ssl-cert=name     X509 cert in PEM format.
+  --ssl-cipher=name   SSL cipher to use.
+  --ssl-key=name      X509 key in PEM format.
+  --ssl-crl=name      Certificate revocation list.
+  --ssl-crlpath=name  Certificate revocation list path.
+  --tls-version=name  TLS version to use, permitted values are: TLSv1, TLSv1.1,
+                      TLSv1.2
+  --server-public-key-path=name 
+                      File path to the server public RSA key in PEM format.
+  --get-server-public-key 
+                      Get server public key
+  -T, --tab=name      Create tab-separated textfile for each table to given
+                      path. (Create .sql and .txt files.) NOTE: This only works
+                      if mysqldump is run on the same machine as the mysqld
+                      server.
+  --tables            Overrides option --databases (-B).
+  --triggers          Dump triggers for each dumped table.
+                      (Defaults to on; use --skip-triggers to disable.)
+  --tz-utc            SET TIME_ZONE='+00:00' at top of dump to allow dumping of
+                      TIMESTAMP data when a server has data in different time
+                      zones or data is being moved between servers with
+                      different time zones.
+                      (Defaults to on; use --skip-tz-utc to disable.)
+  -u, --user=name     User for login if not current user.
+  -v, --verbose       Print info about the various stages.
+  -V, --version       Output version information and exit.
+  -w, --where=name    Dump only selected records. Quotes are mandatory.
+  -X, --xml           Dump a database as well formed XML.
+  --plugin-dir=name   Directory for client-side plugins.
+  --default-auth=name Default authentication client-side plugin to use.
+  --enable-cleartext-plugin 
+                      Enable/disable the clear text authentication plugin.
+
+Variables (--variable-name=value)
+and boolean options {FALSE|TRUE}  Value (after reading options)
+--------------------------------- ----------------------------------------
+all-databases                     FALSE
+all-tablespaces                   FALSE
+no-tablespaces                    FALSE
+add-drop-database                 FALSE
+add-drop-table                    TRUE
+add-drop-trigger                  FALSE
+add-locks                         TRUE
+allow-keywords                    FALSE
+apply-slave-statements            FALSE
+bind-address                      (No default value)
+character-sets-dir                (No default value)
+comments                          TRUE
+compatible                        (No default value)
+compact                           FALSE
+complete-insert                   FALSE
+compress                          FALSE
+create-options                    TRUE
+databases                         FALSE
+default-character-set             utf8
+delete-master-logs                FALSE
+disable-keys                      TRUE
+dump-slave                        0
+events                            FALSE
+extended-insert                   TRUE
+fields-terminated-by              (No default value)
+fields-enclosed-by                (No default value)
+fields-optionally-enclosed-by     (No default value)
+fields-escaped-by                 (No default value)
+flush-logs                        FALSE
+flush-privileges                  FALSE
+force                             FALSE
+hex-blob                          FALSE
+host                              (No default value)
+ignore-error                      (No default value)
+include-master-host-port          FALSE
+insert-ignore                     FALSE
+lines-terminated-by               (No default value)
+lock-all-tables                   FALSE
+lock-tables                       TRUE
+log-error                         (No default value)
+master-data                       0
+max-allowed-packet                25165824
+net-buffer-length                 1046528
+no-autocommit                     FALSE
+no-create-db                      FALSE
+no-create-info                    FALSE
+no-data                           FALSE
+order-by-primary                  FALSE
+port                              0
+quick                             TRUE
+quote-names                       TRUE
+replace                           FALSE
+routines                          FALSE
+set-charset                       TRUE
+single-transaction                FALSE
+dump-date                         TRUE
+socket                            (No default value)
+secure-auth                       TRUE
+ssl                               TRUE
+ssl-verify-server-cert            FALSE
+ssl-ca                            (No default value)
+ssl-capath                        (No default value)
+ssl-cert                          (No default value)
+ssl-cipher                        (No default value)
+ssl-key                           (No default value)
+ssl-crl                           (No default value)
+ssl-crlpath                       (No default value)
+tls-version                       (No default value)
+server-public-key-path            (No default value)
+get-server-public-key             FALSE
+tab                               (No default value)
+triggers                          TRUE
+tz-utc                            TRUE
+user                              (No default value)
+verbose                           FALSE
+where                             (No default value)
+plugin-dir                        (No default value)
+default-auth                      (No default value)
+enable-cleartext-plugin           FALSE
+[tengfei@core mysql-5.7.35]$ 
+[tengfei@core mysql-5.7.35]$ cat ~/ddl.sql 
 -- MySQL dump 10.13  Distrib 5.7.35, for Linux (x86_64)
 --
--- Host: localhost    Database: amazon
+-- Host: localhost    Database: amazone
 -- ------------------------------------------------------
 -- Server version	5.7.35-log
 
@@ -14,320 +368,3 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
---
--- Current Database: `amazon`
---
-
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `amazon` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
-
-USE `amazon`;
-
---
--- Temporary table structure for view `产品检查表`
---
-
-DROP TABLE IF EXISTS `产品检查表`;
-/*!50001 DROP VIEW IF EXISTS `产品检查表`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `产品检查表` AS SELECT 
- 1 AS `状态`,
- 1 AS `链接数量`*/;
-SET character_set_client = @saved_cs_client;
-
---
--- Temporary table structure for view `占用空间表`
---
-
-DROP TABLE IF EXISTS `占用空间表`;
-/*!50001 DROP VIEW IF EXISTS `占用空间表`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `占用空间表` AS SELECT 
- 1 AS `Database`,
- 1 AS `Size (MB)`*/;
-SET character_set_client = @saved_cs_client;
-
---
--- Temporary table structure for view `商家查找表`
---
-
-DROP TABLE IF EXISTS `商家查找表`;
-/*!50001 DROP VIEW IF EXISTS `商家查找表`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `商家查找表` AS SELECT 
- 1 AS `数量`,
- 1 AS `count(*)`*/;
-SET character_set_client = @saved_cs_client;
-
---
--- Temporary table structure for view `搜索统计表`
---
-
-DROP TABLE IF EXISTS `搜索统计表`;
-/*!50001 DROP VIEW IF EXISTS `搜索统计表`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `搜索统计表` AS SELECT 
- 1 AS `中文关键词`,
- 1 AS `搜索次数`,
- 1 AS `产品数`*/;
-SET character_set_client = @saved_cs_client;
-
---
--- Temporary table structure for view `程序状态表`
---
-
-DROP TABLE IF EXISTS `程序状态表`;
-/*!50001 DROP VIEW IF EXISTS `程序状态表`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `程序状态表` AS SELECT 
- 1 AS `名称`,
- 1 AS `状态`,
- 1 AS `更新时间`*/;
-SET character_set_client = @saved_cs_client;
-
---
--- Temporary table structure for view `类别总数表`
---
-
-DROP TABLE IF EXISTS `类别总数表`;
-/*!50001 DROP VIEW IF EXISTS `类别总数表`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `类别总数表` AS SELECT 
- 1 AS `类别总数`*/;
-SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `application`
---
-
-DROP TABLE IF EXISTS `application`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `application` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `app_id` int(11) NOT NULL,
-  `status` tinyint(1) NOT NULL DEFAULT '0',
-  `update` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=143 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `category`
---
-
-DROP TABLE IF EXISTS `category`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `category` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `zh_key` varchar(30) NOT NULL,
-  `en_key` varchar(50) NOT NULL,
-  `priority` int(11) DEFAULT '0',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1016 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `cookie`
---
-
-DROP TABLE IF EXISTS `cookie`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `cookie` (
-  `host_id` tinyint(1) NOT NULL,
-  `cookie` text,
-  PRIMARY KEY (`host_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `product`
---
-
-DROP TABLE IF EXISTS `product`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `product` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `url` varchar(200) NOT NULL,
-  `param` varchar(400) NOT NULL,
-  `status` tinyint(1) DEFAULT '0',
-  `app` tinyint(1) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `url` (`url`)
-) ENGINE=InnoDB AUTO_INCREMENT=461937 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `search_statistics`
---
-
-DROP TABLE IF EXISTS `search_statistics`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `search_statistics` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `category_id` int(11) NOT NULL,
-  `start` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `end` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  `status` tinyint(1) DEFAULT '0',
-  `app` tinyint(1) NOT NULL,
-  `valid` int(11) DEFAULT '0',
-  PRIMARY KEY (`id`),
-  KEY `category_id` (`category_id`),
-  CONSTRAINT `search_statistics_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `category` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2330 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `seller`
---
-
-DROP TABLE IF EXISTS `seller`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `seller` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `seller_id` varchar(25) NOT NULL,
-  `trn` varchar(28) DEFAULT NULL,
-  `status` tinyint(1) NOT NULL DEFAULT '0',
-  `app` tinyint(1) NOT NULL DEFAULT '0',
-  `info_status` tinyint(1) DEFAULT '0',
-  `company_id` char(16) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `seller_id_UNIQUE` (`seller_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=115613 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Current Database: `amazon`
---
-
-USE `amazon`;
-
---
--- Final view structure for view `产品检查表`
---
-
-/*!50001 DROP VIEW IF EXISTS `产品检查表`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `产品检查表` AS select (case when (`product`.`status` = 0) then '未搜索' when (`product`.`status` = 1) then '准备检查' when (`product`.`status` = 2) then '检查结束' when (`product`.`status` = 3) then '其他错误' when (`product`.`status` = 4) then '没有商家' else `product`.`status` end) AS `状态`,count(0) AS `链接数量` from `product` group by `product`.`status` */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-
---
--- Final view structure for view `占用空间表`
---
-
-/*!50001 DROP VIEW IF EXISTS `占用空间表`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `占用空间表` AS select `information_schema`.`tables`.`TABLE_SCHEMA` AS `Database`,((sum((`information_schema`.`tables`.`DATA_LENGTH` + `information_schema`.`tables`.`INDEX_LENGTH`)) / 1024) / 1024) AS `Size (MB)` from `information_schema`.`tables` group by `information_schema`.`tables`.`TABLE_SCHEMA` */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-
---
--- Final view structure for view `商家查找表`
---
-
-/*!50001 DROP VIEW IF EXISTS `商家查找表`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `商家查找表` AS select (case `seller`.`status` when 0 then '未查找' when 1 then '中国ID' when 2 then '空ID' when 3 then '其他ID' when 4 then '异常ID' end) AS `数量`,count(0) AS `count(*)` from `seller` group by `seller`.`status` */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-
---
--- Final view structure for view `搜索统计表`
---
-
-/*!50001 DROP VIEW IF EXISTS `搜索统计表`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `搜索统计表` AS select `k`.`zh_key` AS `中文关键词`,count(0) AS `搜索次数`,sum(`s`.`valid`) AS `产品数` from (`amazon`.`search_statistics` `s` join (select `amazon`.`category`.`id` AS `id`,`amazon`.`category`.`zh_key` AS `zh_key` from `amazon`.`category`) `k` on((`s`.`category_id` = `k`.`id`))) group by `s`.`category_id` */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-
---
--- Final view structure for view `程序状态表`
---
-
-/*!50001 DROP VIEW IF EXISTS `程序状态表`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `程序状态表` AS select (case when (`application`.`app_id` = 1) then '兔飞飞测试程序' when (`application`.`app_id` = 2) then '兔飞飞搬瓦工搜索产品程序' when (`application`.`app_id` = 3) then '兔飞飞搬瓦工搜索商家程序' when (`application`.`app_id` = 4) then '兔飞飞搬瓦工搜索TRN程序' end) AS `名称`,(case when (`application`.`status` = 0) then '启动中' when (`application`.`status` = 1) then '结束' when (`application`.`status` = 2) then '1.搜索页面中' when (`application`.`status` = 3) then '2.查找商家中' when (`application`.`status` = 4) then '3.确定TRN中' end) AS `状态`,`application`.`update` AS `更新时间` from `application` order by `application`.`update` desc */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-
---
--- Final view structure for view `类别总数表`
---
-
-/*!50001 DROP VIEW IF EXISTS `类别总数表`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`amazon`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `类别总数表` AS select count(0) AS `类别总数` from `category` */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
-
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-
--- Dump completed on 2024-02-04 12:07:28

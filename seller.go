@@ -1,107 +1,118 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	log "github.com/tengfei-xy/go-log"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/tengfei-xy/go-log"
 )
 
 type sellerStruct struct {
-	url string
-	id  string
+	seller_id    string
+	url          string
+	businessName string
+	trn          string
+	address      string
+	primary_id   string
+	trn_status   int
+	all_status   int
 }
 
-const MYSQL_SELLER_STATUS_INSERT int = 0
-const MYSQL_SELLER_STATUS_CHEKCK int = 1
-const MYSQL_SELLER_STATUS_OVER int = 2
-const MYSQL_SELLER_STATUS_ERROR_OVER int = 3
-const MYSQL_SELLER_STATUS_NO_SELLER int = 4
+const MYSQL_SELLER_STATUS_TRN_OK int = 1
+const MYSQL_SELLER_STATUS_TRN_NO int = 2
+const MYSQL_SELLER_STATUS_TRN_OTHER int = 3
+const MYSQL_SELLER_STATUS_TRN_SPECIAL int = 4
 
+const MYSQL_SELLER_STATUS_INFO_INSERT int = MYSQL_PRODUCT_STATUS_INSERT
+const MYSQL_SELLER_STATUS_INFO_OK int = 1
+const MYSQL_SELLER_STATUS_INFO_ALL_NO_NAME int = 2
+const MYSQL_SELLER_STATUS_INFO_ALL_NO_ADDRESS int = 3
+const MYSQL_SELLER_STATUS_INFO_ALL_NO_TRN int = 3
+
+func (seller *sellerStruct) prepare() {
+	app.update(MYSQL_APPLICATION_STATUS_SELLER)
+	log.Infof("------------------------")
+	log.Infof("3. 开始 根据商家页获取商家信息")
+}
+func (seller *sellerStruct) over() {
+	log.Infof("3. 结束 根据商家页获取商家信息")
+	log.Infof("------------------------")
+}
+func (seller *sellerStruct) start() error {
+	_, err := app.db.Exec("UPDATE seller SET app_id = ? WHERE all_status = ? and (app_id=? or app_id=?) LIMIT 100", app.Basic.App_id, MYSQL_SELLER_STATUS_INFO_INSERT, 0, app.Basic.App_id)
+	if err != nil {
+		log.Errorf("更新seller表失败,%v", err)
+		return err
+	}
+	return nil
+}
 func (seller *sellerStruct) main() error {
+
 	if !app.Exec.Enable.Seller {
-		log.Info("跳过 产品")
+		log.Info("跳过 获取商家信息")
 		return nil
 	}
 
-	app.update(MYSQL_APPLICATION_STATUS_SELLER)
-
-	log.Infof("------------------------")
-	log.Infof("2. 开始从产品页获取商家ID")
-	_, err := app.db.Exec("UPDATE product SET status = ? ,app = ? WHERE (status = ? or status=?) and (app=? or app=?)  LIMIT 100", MYSQL_SELLER_STATUS_CHEKCK, app.Basic.App_id, MYSQL_SELLER_STATUS_INSERT, MYSQL_SELLER_STATUS_ERROR_OVER, 0, app.Basic.App_id)
-	if err != nil {
-		log.Errorf("更新product表失败,%v", err)
+	seller.prepare()
+	if err := seller.start(); err != nil {
 		return err
 	}
 
-	row, err := app.db.Query(`select id,url,param from product where status=? and app = ?`, MYSQL_SELLER_STATUS_CHEKCK, app.Basic.App_id)
-	if err != nil {
-		log.Errorf("查询product表失败,%v", err)
+	row, err := app.db.Query("select id,seller_id from seller where all_status =? and app_id=?", MYSQL_SELLER_STATUS_INFO_INSERT, app.Basic.App_id)
+	switch err {
+	case nil:
+		break
+	case sql.ErrNoRows:
+		log.Warnf("指定的app_id:%d,没有需要处理的商家信息", app.Basic.App_id)
+		return nil
+	default:
+		log.Error(err)
 		return err
+
 	}
 	for row.Next() {
-		seller.id = ""
-		var primary_id int64
-		var url, param string
-		if err := row.Scan(&primary_id, &url, &param); err != nil {
-			log.Errorf("获取product表的值失败,%v", err)
+		if err := row.Scan(&seller.primary_id, &seller.seller_id); err != nil {
+			log.Error(err)
 			continue
 		}
+		seller.url = fmt.Sprintf("https://%s/sp?ie=UTF8&seller=%s", app.Domain, seller.seller_id)
 
-		url = "https://" + app.Domain + url + param
-		if err := robot.IsAllow(userAgent, url); err != nil {
+		if err := robot.IsAllow(userAgent, seller.url); err != nil {
 			log.Errorf("%v", err)
 			continue
 		}
 
-		log.Infof("查找商家链接 ID:%d url:%s", primary_id, url)
-		err := seller.request(url)
-		if err != nil {
-			if err == ERROR_NOT_SELLER {
-				seller.update_status(primary_id, MYSQL_SELLER_STATUS_NO_SELLER)
-				continue
-			} else if err == ERROR_NOT_404 || err == ERROR_NOT_503 || err == ERROR_VERIFICATION {
-				seller.update_status(primary_id, MYSQL_SELLER_STATUS_ERROR_OVER)
-				log.Error(err)
-				sleep(300)
-				continue
-			} else {
-				seller.update_status(primary_id, MYSQL_SELLER_STATUS_ERROR_OVER)
-				log.Error(err)
-				sleep(300)
-				continue
-
-			}
-		}
-
-		seller.get_seller_id()
-
-		err = seller.insert_selll_id()
-		if is_duplicate_entry(err) {
-			log.Infof("店铺已存在 商家ID:%s", seller.id)
-			err = nil
-		}
-		if err != nil {
+		for err := seller.request(); err != nil; {
 			log.Error(err)
-			continue
+			sleep(120)
 		}
-		if err := seller.update_status(primary_id, MYSQL_SELLER_STATUS_OVER); err != nil {
+
+		seller.trnCheck()
+		seller.addressCheck()
+		seller.nameCheck()
+		if err := seller.update(); err != nil {
 			log.Error(err)
 			continue
 		}
 
 	}
-	log.Infof("2. 结束从产品页获取商家ID")
-	log.Infof("------------------------")
 
+	seller.over()
 	return nil
 }
 
-func (seller *sellerStruct) request(url string) error {
+// 作用: 根据 seller.url 请求商家信息
+// 举例: 根据 https://www.amazon.co.uk/sp?ie=UTF8&seller=A272CUATTYX3C4 请求商家信息
+func (seller *sellerStruct) request() error {
+
+	log.Infof("请求链接 %s", seller.url)
+
 	client := get_client()
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", seller.url, nil)
 	if err != nil {
 		return err
 	}
@@ -137,9 +148,15 @@ func (seller *sellerStruct) request(url string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		log.Errorf("状态码:%d", resp.StatusCode)
-		return err
+	switch resp.StatusCode {
+	case 200:
+		break
+	case 404:
+		return ERROR_NOT_404
+	case 503:
+		return ERROR_NOT_503
+	default:
+		return fmt.Errorf("状态码:%d", resp.StatusCode)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
@@ -147,37 +164,105 @@ func (seller *sellerStruct) request(url string) error {
 		return fmt.Errorf("内部错误:%v", err)
 	}
 
-	res := doc.Find("a[id=sellerProfileTriggerId]").First()
-	url, exist := res.Attr("href")
-	if exist {
-		seller.url = url
-		return nil
-	}
-	if doc.Find("h4").First().Text() == "Enter the characters you see below" {
-		return ERROR_VERIFICATION
-	}
-	return ERROR_NOT_SELLER
-}
-func (seller *sellerStruct) get_seller_id() string {
-	for _, j := range strings.Split(seller.url, "&") {
-		if strings.HasPrefix(j, "seller=") {
-			seller.id = strings.Split(j, "seller=")[1]
+	sellerTxt := doc.Find("div#page-section-detail-seller-info").Find("span").Text()
+
+	seller.all_status = MYSQL_SELLER_STATUS_INFO_OK
+	var info []string
+
+	for _, line := range strings.Split(sellerTxt, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if line == "Business Name:" {
+			info = append(info, line)
+		} else if strings.Contains(line, "Business Name:") {
+			line = strings.ReplaceAll(line, "Business Name:", "")
+			info = append(info, line)
+			info = append(info, "Business Type:")
+		} else if strings.Contains(line, "Business Type:") {
+			line = strings.ReplaceAll(line, "Business Type:", "")
+			info = append(info, line)
+			info = append(info, "Business Type:")
+		} else if strings.Contains(line, "Trade Register Number:") {
+			line = strings.ReplaceAll(line, "Trade Register Number:", "")
+			info = append(info, line)
+			info = append(info, "Trade Register Number:")
+		} else if strings.Contains(line, "Business Address:") {
+			line = strings.ReplaceAll(line, "Business Address:", "")
+			info = append(info, line)
+			info = append(info, "Business Address:")
+		} else if strings.Contains(line, "VAT Number:") {
+			line = strings.ReplaceAll(line, "VAT Number:", "")
+			info = append(info, line)
+			info = append(info, "VAT Number:")
+		} else {
+			info = append(info, line)
 		}
 	}
-	// if ( seller.id=="")
-	return seller.id
-}
-func (seller *sellerStruct) insert_selll_id() error {
-	_, err := app.db.Exec("insert into seller (seller_id,app) values(?,?)", seller.id, 0)
-	return err
+
+	for i, line := range info {
+		if strings.Contains(line, "Business Name") {
+			seller.businessName = info[i+1]
+		} else if strings.Contains(line, "Trade Register Number") {
+			seller.trn = info[i+1]
+		} else if strings.Contains(line, "Business Address") {
+			seller.address = strings.Join(info[i+1:], " ")
+		} else if strings.Contains(line, "VAT Number") {
+			// seller.address = strings.Join(info[i+1:], " ")
+		} else if strings.Contains(line, "Business Type") {
+			// seller.address = strings.Join(info[i+1:], " ")
+		}
+	}
+
+	return nil
 }
 
-func (seller *sellerStruct) update_status(id int64, s int) error {
-	_, err := app.db.Exec("UPDATE product SET status = ? ,app = ? WHERE id = ?", s, app.Basic.App_id, id)
-	if err != nil {
-		log.Infof("更新product表状态失败 ID:%d app:%d 状态:%d", id, app.Basic.App_id, s)
-		return err
+// 作用: 检查TRN
+func (seller *sellerStruct) trnCheck() {
+	seller.trn = strings.ReplaceAll(seller.trn, "(1-1)", "")
+	if len(seller.trn) == 0 {
+		log.Warnf("检查结果 TRN为空")
+		seller.trn_status = MYSQL_SELLER_STATUS_TRN_NO
+		seller.all_status = MYSQL_SELLER_STATUS_INFO_ALL_NO_TRN
+		return
+	} else if len(seller.trn) < 18 {
+		log.Warnf("检查结果 TRN: %s (非中国)", seller.trn)
+		seller.trn_status = MYSQL_SELLER_STATUS_TRN_OTHER
+		return
+	} else if len(seller.trn) > 18 {
+		log.Warnf("检查结果 TRN: %s (非中国)", seller.trn)
+		seller.trn = ""
+		seller.trn_status = MYSQL_SELLER_STATUS_TRN_OTHER
+		return
 	}
-	log.Infof("更新product表状态成功 ID:%d 状态:%d app:%d ", id, s, app.Basic.App_id)
-	return nil
+	if seller.trn[0] != '9' {
+		log.Warnf("检查结果 TRN: %s (18位长,非9开头)", seller.trn)
+		seller.trn_status = MYSQL_SELLER_STATUS_TRN_SPECIAL
+		return
+	}
+	log.Infof("查找结果 TRN: %s(中国)", seller.trn)
+	seller.trn_status = MYSQL_SELLER_STATUS_TRN_OK
+	return
+}
+
+func (seller *sellerStruct) addressCheck() {
+	if len(seller.address) == 0 {
+		log.Errorf("检查结果 地址为空")
+		seller.all_status = MYSQL_SELLER_STATUS_INFO_ALL_NO_ADDRESS
+		return
+	}
+	log.Infof("查找结果 地址: %s", seller.address)
+}
+func (seller *sellerStruct) nameCheck() {
+	if len(seller.businessName) == 0 {
+		log.Errorf("检查结果 商家名称为空")
+		seller.all_status = MYSQL_SELLER_STATUS_INFO_ALL_NO_NAME
+		return
+	}
+	log.Infof("查找结果 商家名称: %s", seller.businessName)
+}
+func (seller *sellerStruct) update() error {
+	_, err := app.db.Exec("update seller set trn_status=?,trn=?,name=?,address=?,all_status=? where id=? and app_id=?", seller.trn_status, seller.trn, seller.businessName, seller.address, seller.all_status, seller.primary_id, app.Basic.App_id)
+	return err
 }

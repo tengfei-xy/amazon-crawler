@@ -17,8 +17,8 @@ import (
 const MYSQL_APPLICATION_STATUS_START int = 0
 const MYSQL_APPLICATION_STATUS_OVER int = 1
 const MYSQL_APPLICATION_STATUS_SEARCH int = 2
-const MYSQL_APPLICATION_STATUS_SELLER int = 3
-const MYSQL_APPLICATION_STATUS_TRN int = 4
+const MYSQL_APPLICATION_STATUS_PRODUCT int = 3
+const MYSQL_APPLICATION_STATUS_SELLER int = 4
 
 type appConfig struct {
 	Mysql      `yaml:"mysql"`
@@ -34,9 +34,9 @@ type Exec struct {
 	Search_priority int `yaml:"search_priority"`
 }
 type Enable struct {
-	Search bool `yaml:"search"`
-	Seller bool `yaml:"seller"`
-	Trn    bool `yaml:"trn"`
+	Search  bool `yaml:"search"`
+	Product bool `yaml:"product"`
+	Seller  bool `yaml:"seller"`
 }
 type Basic struct {
 	App_id  int    `yaml:"app_id"`
@@ -74,7 +74,7 @@ func init_config(flag flagStruct) {
 	if err != nil {
 		panic(err)
 	}
-	if !app.Exec.Enable.Search && !app.Exec.Enable.Seller && !app.Exec.Enable.Trn {
+	if !app.Exec.Enable.Search && !app.Exec.Enable.Product && !app.Exec.Enable.Seller {
 		panic("没有启动功能，检查配置文件的enable配置的选项")
 	}
 	log.Infof("程序标识:%d 主机标识:%d", app.Basic.App_id, app.Basic.Host_id)
@@ -106,7 +106,7 @@ func init_mysql() {
 func init_network() {
 	log.Info("网络测试开始")
 
-	var s search
+	var s searchStruct
 	s.en_key = "Hardware+electrician"
 	_, err := s.request(0)
 	if err != nil {
@@ -147,14 +147,14 @@ func main() {
 
 	app.start()
 	for {
-		var s search
-		s.main()
+		var search searchStruct
+		search.main()
+
+		var product productStruct
+		product.main()
 
 		var seller sellerStruct
 		seller.main()
-
-		var trn trnStruct
-		trn.main()
 	}
 
 }
